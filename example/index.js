@@ -6,7 +6,11 @@ var game = createEngine({
   texturePath: './textures/',
   materials: ['dirt', 'grass']
 });
-game.appendTo('#container');
+var container = document.body;
+game.appendTo(container);
+container.addEventListener('click', function() {
+  game.requestPointerLock(container);
+});
 
 var explode = require('voxel-debris')(game, { power : 1.5 });
 
@@ -24,7 +28,6 @@ window.addEventListener('keyup', ctrlToggle);
 
 var erase = true;
 function ctrlToggle (ev) { erase = !ev.ctrlKey }
-game.requestPointerLock('canvas');
 
 // Build our createMaterials function
 var createMaterials = require('../')(game);
