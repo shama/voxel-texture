@@ -2,7 +2,7 @@
 
 > A texture helper for [voxeljs](http://voxeljs.com).
 
-View [the demo](https://shama.github.com/voxel-texture).
+View [the demo](http://shama.github.com/voxel-texture).
 
 ## example
 ```js
