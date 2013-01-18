@@ -6,15 +6,17 @@ View [the demo](http://shama.github.com/voxel-texture).
 
 ## example
 ```js
-// Pass it a copy of the game
-var createMaterials = require('voxel-texture')(game);
+// Create a texture engine
+var createMaterials = require('voxel-texture');
 
 // Create 6 sided material, all sides same texture
 var materials = createMaterials('grass');
 ```
 
-This will load `'./textures/grass.png'` assuming your
-`game.texturePath === './textures/'`.
+This will load `'/textures/grass.png'`. Change the texture path with:
+```js
+var materials = createMaterials('grass', {texturePath: '/textures/'});
+```
 
 Then you can use the materials like such:
 ```js
@@ -94,6 +96,7 @@ npm install voxel-texture
 ```
 
 ## release history
+* 0.2.0 - ability to set multiple textures on voxel meshes
 * 0.1.1 - fix texture sharpness
 * 0.1.0 - initial release
 

@@ -1,10 +1,10 @@
 var createEngine = require('voxel-engine');
 var game = createEngine({
   generate: function(x, y, z) {
-    return (Math.sqrt(x*x + y*y + z*z) > 20 || y*y > 10) ? 0 : (Math.random() * 2) + 1;
+    return (Math.sqrt(x*x + y*y + z*z) > 20 || y*y > 10) ? 0 : (Math.random() * 3) + 1;
   },
-  texturePath: './textures/',
-  materials: ['dirt', 'grass']
+  //materials: ['brick', ['grass', 'dirt', 'grass_dirt']]
+  materials: ['brick', 'grass']
 });
 var container = document.body;
 game.appendTo(container);
@@ -29,8 +29,11 @@ window.addEventListener('keyup', ctrlToggle);
 var erase = true;
 function ctrlToggle (ev) { erase = !ev.ctrlKey }
 
-// Build our createMaterials function
-var createMaterials = require('../')(game);
+// Our texture builder
+var materialEngine = require('../')({
+  texturePath: game.texturePath,
+  THREE: game.THREE
+});
 
 [
   '0',
@@ -48,7 +51,7 @@ var createMaterials = require('../')(game);
   },
 ].forEach(function(materials, i) {
   // Create 6 sided material
-  materials = createMaterials(materials);
+  materials = materialEngine.loadTexture(materials);
 
   // Create a mesh
   var mesh = new game.THREE.Mesh(

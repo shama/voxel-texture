@@ -27,12 +27,20 @@
   "scripts": {
     "test": "grunt"
   },
+  "dependencies": {
+    "three": "~0.55.0"
+  },
   "devDependencies": {
-    "voxel-engine": "~0.2.4",
+    "voxel-engine": "~0.2.8",
     "voxel-debris": "~0.0.4",
     "ecstatic": "~0.3.1",
     "grunt": "~0.4.0rc4",
-    "grunt-contrib-watch": "~0.2.0rc5"
+    "grunt-contrib-watch": "~0.2.0rc5",
+    "voxel-mesh": "~0.1.0",
+    "voxel": "~0.1.0"
   },
-  "keywords": []
+  "keywords": [
+    "voxel",
+    "texture"
+  ]
 }
