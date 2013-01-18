@@ -7,7 +7,7 @@ function Texture(names, opts) {
   }
   this.THREE = opts.THREE || require('three');
   this.texturePath = opts.texturePath || '/textures/';
-  if (names) this.loadTextures(names);
+  if (names) this.loadTexture(names);
 }
 module.exports = Texture;
 
@@ -26,28 +26,28 @@ Texture.prototype.loadTexture = function(data) {
   // 0 is top, 1 is bottom, 2 is front/back, 3 is left/right
   if (data.length === 4) data = [data[2],data[2],data[0],data[1],data[3],data[3]];
   data = data.map(function(name, i) {
-    var tex       = self.THREE.ImageUtils.loadTexture(self.texturePath + ext(name));
-    tex.magFilter = self.THREE.NearestFilter;
-    tex.minFilter = self.THREE.LinearMipMapLinearFilter;
-    tex.wrapT     = self.THREE.RepeatWrapping;
-    tex.wrapS     = self.THREE.RepeatWrapping;
-    return new self.THREE.MeshLambertMaterial({
+    var tex = self.THREE.ImageUtils.loadTexture(self.texturePath + ext(name));
+    self._applyTextureSettings(tex);
+    var mat = new self.THREE.MeshLambertMaterial({
       map: tex,
       ambient: 0xbbbbbb
     });
+    // rotate front and left 90 degs
+    if (self._loadingMesh === true && (i === 1 || i === 4)) self.rotate(mat, 90);
+    return mat;
   });
-  return (self._loadingMulti !== true) ? new self.THREE.MeshFaceMaterial(data) : data;
+  return (self._loadingMesh !== true) ? new self.THREE.MeshFaceMaterial(data) : data;
 };
 
 Texture.prototype.loadTextures = function(names) {
   var self = this;
-  self._loadingMulti = true;
+  self._loadingMesh = true;
   self.material = new self.THREE.MeshFaceMaterial(
     [].concat.apply([], names.map(function(name) {
       return self.loadTexture(name);
     }))
   );
-  self._loadingMulti = false;
+  self._loadingMesh = false;
   return self.material;
 };
 
@@ -67,10 +67,34 @@ Texture.prototype.applyTextures = function(geom) {
     else if (face.normal.x === -1) index += 4;
     else if (face.normal.x === 1)  index += 5;
 
-    // todo: figure out why left and back need a -90 rotation
-
     face.materialIndex = index;
-  })
+  });
+};
+
+Texture.prototype.rotate = function(material, deg) {
+  var self = this;
+  deg = deg || 90;
+  material.map.image.onload = function() {
+    var canvas    = document.createElement('canvas');
+    canvas.width  = this.width;
+    canvas.height = this.height;
+    var ctx       = canvas.getContext('2d');
+
+    ctx.translate(canvas.width / 2, canvas.height / 2);
+    ctx.rotate(Math.PI / 180 * deg);
+    ctx.drawImage(this, -(canvas.width / 2), -(canvas.height / 2));
+
+    material.map = new self.THREE.Texture(canvas);
+    self._applyTextureSettings(material.map);
+    material.map.needsUpdate = true;
+  };
+};
+
+Texture.prototype._applyTextureSettings = function(tex) {
+  tex.magFilter = this.THREE.NearestFilter;
+  tex.minFilter = this.THREE.LinearMipMapLinearFilter;
+  tex.wrapT     = this.THREE.RepeatWrapping;
+  tex.wrapS     = this.THREE.RepeatWrapping;
 };
 
 function ext(name) {
