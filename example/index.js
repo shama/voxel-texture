@@ -4,7 +4,8 @@ var game = createEngine({
     return (Math.sqrt(x*x + y*y + z*z) > 20 || y*y > 10) ? 0 : (Math.random() * 3) + 1;
   },
   //materials: ['brick', ['grass', 'dirt', 'grass_dirt']]
-  materials: ['brick', 'grass']
+  materials: ['brick', 'grass'],
+  texturePath: 'textures/'
 });
 var container = document.body;
 game.appendTo(container);
