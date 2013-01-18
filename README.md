@@ -94,6 +94,7 @@ npm install voxel-texture
 ```
 
 ## release history
+* 0.1.1 - fix texture sharpness
 * 0.1.0 - initial release
 
 ## license

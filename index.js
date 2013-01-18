@@ -22,9 +22,14 @@ module.exports = function(game) {
     // 0 is top, 1 is bottom, 2 is front/back, 3 is left/right
     if (data.length === 4) data = [data[2],data[2],data[0],data[1],data[3],data[3]];
     return new game.THREE.MeshFaceMaterial(data.map(function(name) {
-      return new game.THREE.MeshBasicMaterial({
-        ambient: 0xbbbbbb,
-        map: game.THREE.ImageUtils.loadTexture(game.texturePath + ext(name))
+      var tex       = game.THREE.ImageUtils.loadTexture(game.texturePath + ext(name));
+      tex.magFilter = game.THREE.NearestFilter;
+      tex.minFilter = game.THREE.LinearMipMapLinearFilter;
+      tex.wrapT     = game.THREE.RepeatWrapping;
+      tex.wrapS     = game.THREE.RepeatWrapping;
+      return new game.THREE.MeshLambertMaterial({
+        map: tex,
+        ambient: 0xbbbbbb
       });
     }));
   };
