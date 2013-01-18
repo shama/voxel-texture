@@ -1,7 +1,7 @@
 {
   "name": "voxel-texture",
   "description": "A texture helper for voxeljs",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "homepage": "https://github.com/shama/voxel-texture",
   "author": {
     "name": "Kyle Robinson Young",
@@ -33,11 +33,11 @@
   "devDependencies": {
     "voxel-engine": "~0.2.8",
     "voxel-debris": "~0.0.4",
+    "voxel-mesh": "~0.1.0",
+    "voxel": "~0.1.0",
     "ecstatic": "~0.3.1",
     "grunt": "~0.4.0rc4",
-    "grunt-contrib-watch": "~0.2.0rc5",
-    "voxel-mesh": "~0.1.0",
-    "voxel": "~0.1.0"
+    "grunt-contrib-watch": "~0.2.0rc5"
   },
   "keywords": [
     "voxel",
