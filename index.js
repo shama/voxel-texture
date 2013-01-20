@@ -7,12 +7,19 @@ function Texture(names, opts) {
   }
   this.THREE = opts.THREE || require('three');
   this.texturePath = opts.texturePath || '/textures/';
+  this.materialParams = opts.materialParams || false;
+  this.materialType = opts.materialType || this.THREE.MeshLambertMaterial;
   if (names) this.loadTexture(names);
 }
 module.exports = Texture;
 
-Texture.prototype.loadTexture = function(data) {
+Texture.prototype.loadTexture = function(data, opts) {
   var self = this;
+
+  opts = opts || {};
+  opts.materialType = opts.materialType || this.materialType;
+  opts.materialParams = opts.materialParams || this.materialParams;
+
   if (typeof data === 'string') data = [data];
   if (!isArray(data)) {
     data = [data.back, data.front, data.top, data.bottom, data.left, data.right];
@@ -27,11 +34,15 @@ Texture.prototype.loadTexture = function(data) {
   if (data.length === 4) data = [data[2],data[2],data[0],data[1],data[3],data[3]];
   data = data.map(function(name, i) {
     var tex = self.THREE.ImageUtils.loadTexture(self.texturePath + ext(name));
-    self._applyTextureSettings(tex);
-    var mat = new self.THREE.MeshLambertMaterial({
+    var params = {
       map: tex,
       ambient: 0xbbbbbb
-    });
+    };
+    if (opts.materialParams) Object.keys(opts.materialParams).forEach(function(key) {
+      params[key] = opts.materialParams[key]
+    })
+    self._applyTextureSettings(tex);
+    var mat = new opts.materialType(params);
     // rotate front and left 90 degs
     if (self._loadingMesh === true && (i === 1 || i === 4)) self.rotate(mat, 90);
     return mat;
