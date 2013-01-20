@@ -52,7 +52,10 @@ var materialEngine = require('../')({
   },
 ].forEach(function(materials, i) {
   // Create 6 sided material
-  materials = materialEngine.loadTexture(materials);
+  materials = materialEngine.loadTexture(materials, {
+    materialParams: { color: (Math.random() * 0xffffff)|0 },
+    materialType: game.THREE.MeshPhongShader
+  });
 
   // Create a mesh
   var mesh = new game.THREE.Mesh(
