@@ -50,12 +50,12 @@ Texture.prototype.loadTexture = function(data, opts) {
   return (self._loadingMesh !== true) ? new self.THREE.MeshFaceMaterial(data) : data;
 };
 
-Texture.prototype.loadTextures = function(names) {
+Texture.prototype.loadTextures = function(names, opts) {
   var self = this;
   self._loadingMesh = true;
   self.material = new self.THREE.MeshFaceMaterial(
     [].concat.apply([], names.map(function(name) {
-      return self.loadTexture(name);
+      return self.loadTexture(name, opts);
     }))
   );
   self._loadingMesh = false;
