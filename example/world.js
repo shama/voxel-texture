@@ -3,9 +3,10 @@ var game = createEngine({
   generate: function(x, y, z) {
     return (Math.sqrt(x*x + y*y + z*z) > 20 || y*y > 10) ? 0 : (Math.random() * 3) + 1;
   },
-  //materials: ['brick', ['grass', 'dirt', 'grass_dirt']]
-  materials: ['brick', 'grass'],
-  texturePath: 'textures/'
+  materials: ['brick', ['grass', 'dirt', 'grass_dirt']],
+  texturePath: './textures/',
+  startingPosition: [200, 200, 0],
+  worldOrigin: [0, 0, 0]
 });
 var container = document.body;
 game.appendTo(container);

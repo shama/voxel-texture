@@ -136,6 +136,7 @@ npm install voxel-texture
 ```
 
 ## release history
+* 0.2.2 - ability to set material type and params. thanks @hughsk!
 * 0.2.1 - fix rotation of front and left textures when loading mesh
 * 0.2.0 - ability to set multiple textures on voxel meshes
 * 0.1.1 - fix texture sharpness
