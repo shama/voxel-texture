@@ -50,12 +50,12 @@ Texture.prototype.loadTexture = function(data, opts) {
   return (self._loadingMesh !== true) ? new self.THREE.MeshFaceMaterial(data) : data;
 };
 
-Texture.prototype.loadTextures = function(names) {
+Texture.prototype.loadTextures = function(names, opts) {
   var self = this;
   self._loadingMesh = true;
   self.material = new self.THREE.MeshFaceMaterial(
     [].concat.apply([], names.map(function(name) {
-      return self.loadTexture(name);
+      return self.loadTexture(name, opts);
     }))
   );
   self._loadingMesh = false;
@@ -85,7 +85,7 @@ Texture.prototype.applyTextures = function(geom) {
 Texture.prototype.rotate = function(material, deg) {
   var self = this;
   deg = deg || 90;
-  material.map.image.onload = function() {
+  if (material.map && material.map.image) material.map.image.onload = function() {
     var canvas    = document.createElement('canvas');
     canvas.width  = this.width;
     canvas.height = this.height;
