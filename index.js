@@ -98,6 +98,11 @@ Texture.prototype.rotate = function(material, deg) {
     material.map = new self.THREE.Texture(canvas);
     self._applyTextureSettings(material.map);
     material.map.needsUpdate = true;
+
+    if (material.uniforms && material.uniforms.map) {
+      material.uniforms.map.value = material.map;
+      material.needsUpdate = true;
+    }
   };
 };
 
