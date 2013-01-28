@@ -34,13 +34,11 @@ Texture.prototype.loadTexture = function(data, opts) {
   if (data.length === 4) data = [data[2],data[2],data[0],data[1],data[3],data[3]];
   data = data.map(function(name, i) {
     var tex = self.THREE.ImageUtils.loadTexture(self.texturePath + ext(name));
-    var params = {
+    var params = defaults(opts.materialParams, {
       map: tex,
-      ambient: 0xbbbbbb
-    };
-    if (opts.materialParams) Object.keys(opts.materialParams).forEach(function(key) {
-      params[key] = opts.materialParams[key]
-    })
+      ambient: 0xbbbbbb,
+      transparent: true
+    });
     self._applyTextureSettings(tex);
     var mat = new opts.materialType(params);
     // rotate front and left 90 degs
@@ -120,4 +118,11 @@ function ext(name) {
 // copied from https://github.com/joyent/node/blob/master/lib/util.js#L433
 function isArray(ar) {
   return Array.isArray(ar) || (typeof ar === 'object' && Object.prototype.toString.call(ar) === '[object Array]');
+}
+
+function defaults(obj) {
+  [].slice.call(arguments, 1).forEach(function(from) {
+    if (from) for (var k in from) if (obj[k] == null) obj[k] = from[k];
+  });
+  return obj;
 }
