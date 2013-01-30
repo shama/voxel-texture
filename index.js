@@ -26,7 +26,7 @@ Texture.prototype.load = function(names, opts) {
   var self = this;
   opts = self._options(opts);
   if (!isArray(names)) names = [names];
-  return names.map(function(name) {
+  return [].concat.apply([], names.map(function(name) {
     name = self._expandName(name);
     self.materialIndex.push([self.materials.length, self.materials.length + name.length]);
     return name.map(function(n) {
@@ -50,7 +50,7 @@ Texture.prototype.load = function(names, opts) {
       self.materials.push(mat);
       return mat;
     });
-  });
+  }));
   //return (self._loadingMesh !== true) ? new self.THREE.MeshFaceMaterial(data) : data;
 };
 
@@ -72,7 +72,7 @@ Texture.prototype.get = function(index) {
       }
     }
   }
-  return new this.THREE.MeshFaceMaterial(this.materials.slice(index[0], index[1]));
+  return this.materials.slice(index[0], index[1]);
 };
 
 Texture.prototype._expandName = function(name) {

@@ -53,15 +53,19 @@ materialEngine.load([
     right:  'grass_dirt'
   }
 ], {
-  materialParams: { color: (Math.random() * 0xffffff)|0 },
   materialType: game.THREE.MeshPhongShader
 });
 
 function createCube(i, materials) {
+  // set a random color
+  materials.forEach(function(material) {
+    material.color = new game.THREE.Color((Math.random() * 0xffffff)|0);
+  });
+
   // create a mesh
   var mesh = new game.THREE.Mesh(
     new game.THREE.CubeGeometry(game.cubeSize, game.cubeSize, game.cubeSize),
-    materials
+    new game.THREE.MeshFaceMaterial(materials)
   );
   mesh.translateX(0);
   mesh.translateY(250);
@@ -80,95 +84,23 @@ function createCube(i, materials) {
   }, (i * 200) + 2000);
 
   game.addItem(cube);
+  return cube;
 }
 
 // retrieve loaded textures
-for (var i = 0; i < 5; i++) {
-  createCube(i, materialEngine.get(i));
-}
+for (var i = 0; i < 5; i++) createCube(i, materialEngine.get(i));
 createCube(i, materialEngine.get('grass'));
 
-/*[
-  ['0'],
-  ['0', '1'],
-  ['0', '1', '2'],
-  ['0', '1', '2', '3'],
-  ['0', '1', '2', '3', '4', '5'],
-  [
-    '0'.split(''),
-    '11'.split(''),
-    '222'.split(''),
-    '3333'.split(''),
-    '44444'.split(''),
-    '555555'.split('')
-  ],
-  {
-    top:    'grass',
-    bottom: 'dirt',
-    front:  'grass_dirt',
-    back:   'grass_dirt',
-    left:   'grass_dirt',
-    right:  'grass_dirt'
+// load a sprite map
+materialEngine.sprite('terrain', 32, function(err, textures) {
+  // load textures into materials
+  var materials = materialEngine.load(textures);
+
+  // create cubes randomly textured from the sprite map
+  for (var x = 0; x < 6; x++) {
+    var r = Math.floor(Math.random() * (materials.length - 5));
+    var m = materials.slice(r, r + 6);
+    var cube = createCube(x, m);
+    cube.mesh.translateX(100);
   }
-].forEach(function(materials, i) {
-  // load materials
-  materials = materialEngine.load([materials], {
-    materialParams: { color: (Math.random() * 0xffffff)|0 },
-    materialType: game.THREE.MeshPhongShader
-  });
-  console.log(materials);
-
-  // Create a mesh
-  var mesh = new game.THREE.Mesh(
-    new game.THREE.CubeGeometry(game.cubeSize, game.cubeSize, game.cubeSize),
-    new game.THREE.MeshFaceMaterial(materials)
-  );
-  mesh.translateX(0);
-  mesh.translateY(250);
-  mesh.translateZ(-(i * 80) + 200);
-
-  // Create a rotating jumping cube
-  var cube = {
-    mesh: mesh,
-    width: game.cubeSize, height: game.cubeSize, depth: game.cubeSize,
-    collisionRadius: game.cubeSize
-  };
-  cube.tick = function() { cube.mesh.rotation.y += Math.PI / 180; };
-  setInterval(function() {
-    cube.velocity.y += 0.15;
-    cube.resting = false;
-  }, (i * 200) + 2000);
-
-  game.addItem(cube);
-});*/
-
-
-// load a sprite
-/*materialEngine.sprite('terrain', 32, function(err, textures) {
-
-  var mesh = new game.THREE.Mesh(
-    new game.THREE.CubeGeometry(game.cubeSize, game.cubeSize, game.cubeSize),
-    materialEngine.load(textures)
-  );
-  mesh.translateX(250);
-  mesh.translateY(250);
-  mesh.translateZ(250);
-
-  var cube = {
-    mesh: mesh,
-    width: game.cubeSize, height: game.cubeSize, depth: game.cubeSize,
-    collisionRadius: game.cubeSize
-  };
-  cube.tick = function() { cube.mesh.rotation.y += Math.PI / 180; };
-  setInterval(function() {
-    cube.velocity.y += 0.15;
-    cube.resting = false;
-  }, 2000);
-  game.addItem(cube);
 });
-*/
-
-
-
-
-
