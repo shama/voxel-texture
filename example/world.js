@@ -37,12 +37,13 @@ var materialEngine = require('../')({
   THREE: game.THREE
 });
 
-[
-  '0',
+// load materials
+materialEngine.load([
+  ['0'],
   ['0', '1'],
   ['0', '1', '2'],
   ['0', '1', '2', '3'],
-  ['0', '1', '2', '3', '4', '5'],
+  ['0', '1', '2', '3', '4', '5']/*,
   {
     top:    'grass',
     bottom: 'dirt',
@@ -50,18 +51,76 @@ var materialEngine = require('../')({
     back:   'grass_dirt',
     left:   'grass_dirt',
     right:  'grass_dirt'
-  },
+  }*/
+], {
+  materialType: game.THREE.MeshPhongShader
+});
+
+function createCube(i, material) {
+  // create a mesh
+  var mesh = new game.THREE.Mesh(
+    new game.THREE.CubeGeometry(game.cubeSize, game.cubeSize, game.cubeSize),
+    material
+  );
+  mesh.translateX(0);
+  mesh.translateY(250);
+  mesh.translateZ(-(i * 80) + 200);
+
+  // create a rotating jumping cube
+  var cube = {
+    mesh: mesh,
+    width: game.cubeSize, height: game.cubeSize, depth: game.cubeSize,
+    collisionRadius: game.cubeSize
+  };
+  cube.tick = function() { cube.mesh.rotation.y += Math.PI / 180; };
+  setInterval(function() {
+    cube.velocity.y += 0.15;
+    cube.resting = false;
+  }, (i * 200) + 2000);
+
+  game.addItem(cube);
+}
+
+// retrieve loaded textures
+for (var i = 0; i < 5; i++) {
+  createCube(i, materialEngine.get(i * 6, 6))
+}
+createCube(i, materialEngine.get('grass', 6));
+
+/*[
+  ['0'],
+  ['0', '1'],
+  ['0', '1', '2'],
+  ['0', '1', '2', '3'],
+  ['0', '1', '2', '3', '4', '5'],
+  [
+    '0'.split(''),
+    '11'.split(''),
+    '222'.split(''),
+    '3333'.split(''),
+    '44444'.split(''),
+    '555555'.split('')
+  ],
+  {
+    top:    'grass',
+    bottom: 'dirt',
+    front:  'grass_dirt',
+    back:   'grass_dirt',
+    left:   'grass_dirt',
+    right:  'grass_dirt'
+  }
 ].forEach(function(materials, i) {
-  // Create 6 sided material
-  materials = materialEngine.loadTexture(materials, {
+  // load materials
+  materials = materialEngine.load([materials], {
     materialParams: { color: (Math.random() * 0xffffff)|0 },
     materialType: game.THREE.MeshPhongShader
   });
+  console.log(materials);
 
   // Create a mesh
   var mesh = new game.THREE.Mesh(
     new game.THREE.CubeGeometry(game.cubeSize, game.cubeSize, game.cubeSize),
-    materials
+    new game.THREE.MeshFaceMaterial(materials)
   );
   mesh.translateX(0);
   mesh.translateY(250);
@@ -80,4 +139,35 @@ var materialEngine = require('../')({
   }, (i * 200) + 2000);
 
   game.addItem(cube);
+});*/
+
+
+// load a sprite
+/*materialEngine.sprite('terrain', 32, function(err, textures) {
+
+  var mesh = new game.THREE.Mesh(
+    new game.THREE.CubeGeometry(game.cubeSize, game.cubeSize, game.cubeSize),
+    materialEngine.load(textures)
+  );
+  mesh.translateX(250);
+  mesh.translateY(250);
+  mesh.translateZ(250);
+
+  var cube = {
+    mesh: mesh,
+    width: game.cubeSize, height: game.cubeSize, depth: game.cubeSize,
+    collisionRadius: game.cubeSize
+  };
+  cube.tick = function() { cube.mesh.rotation.y += Math.PI / 180; };
+  setInterval(function() {
+    cube.velocity.y += 0.15;
+    cube.resting = false;
+  }, 2000);
+  game.addItem(cube);
 });
+*/
+
+
+
+
+
