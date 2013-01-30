@@ -43,7 +43,7 @@ materialEngine.load([
   ['0', '1'],
   ['0', '1', '2'],
   ['0', '1', '2', '3'],
-  ['0', '1', '2', '3', '4', '5']/*,
+  ['0', '1', '2', '3', '4', '5'],
   {
     top:    'grass',
     bottom: 'dirt',
@@ -51,16 +51,17 @@ materialEngine.load([
     back:   'grass_dirt',
     left:   'grass_dirt',
     right:  'grass_dirt'
-  }*/
+  }
 ], {
+  materialParams: { color: (Math.random() * 0xffffff)|0 },
   materialType: game.THREE.MeshPhongShader
 });
 
-function createCube(i, material) {
+function createCube(i, materials) {
   // create a mesh
   var mesh = new game.THREE.Mesh(
     new game.THREE.CubeGeometry(game.cubeSize, game.cubeSize, game.cubeSize),
-    material
+    materials
   );
   mesh.translateX(0);
   mesh.translateY(250);
@@ -83,9 +84,9 @@ function createCube(i, material) {
 
 // retrieve loaded textures
 for (var i = 0; i < 5; i++) {
-  createCube(i, materialEngine.get(i * 6, 6))
+  createCube(i, materialEngine.get(i));
 }
-createCube(i, materialEngine.get('grass', 6));
+createCube(i, materialEngine.get('grass'));
 
 /*[
   ['0'],

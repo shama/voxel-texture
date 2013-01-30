@@ -1,87 +1,100 @@
 function Texture(names, opts) {
+  var self = this;
   if (!(this instanceof Texture)) return new Texture(names, opts || {});
   if (!isArray(name)) {
     opts = names;
     names = null;
   }
-  this.THREE          = opts.THREE          || require('three');
-  this.materials      = [];
-  this.texturePath    = opts.texturePath    || '/textures/';
-  this.materialParams = opts.materialParams || {};
-  this.materialType   = opts.materialType   || this.THREE.MeshLambertMaterial;
-  this._materialDefaults = {
-    ambient: 0xbbbbbb,
-    transparent: true
-  };
-  this._textureDefaults = {
-    magFilter: this.THREE.NearestFilter,
-    minFilter: this.THREE.LinearMipMapLinearFilter,
-    wrapT:     this.THREE.RepeatWrapping,
-    wrapS:     this.THREE.RepeatWrapping
-  };
+  this.THREE              = opts.THREE          || require('three');
+  this.materials          = [];
+  this.texturePath        = opts.texturePath    || '/textures/';
+  this.materialParams     = opts.materialParams || {};
+  this.materialType       = opts.materialType   || this.THREE.MeshLambertMaterial;
+  this.materialIndex      = [];
+  this._materialDefaults  = { ambient: 0xbbbbbb, transparent: true };
+  this.applyTextureParams = opts.applyTextureParams || function(map) {
+    map.magFilter = self.THREE.NearestFilter;
+    map.minFilter = self.THREE.LinearMipMapLinearFilter;
+    map.wrapT     = self.THREE.RepeatWrapping;
+    map.wrapS     = self.THREE.RepeatWrapping;
+  }
   if (names) this.loadTexture(names);
 }
 module.exports = Texture;
 
 Texture.prototype.load = function(names, opts) {
   var self = this;
-  opts = opts || {};
-  opts.materialType   = opts.materialType || this.materialType;
-  opts.materialParams = opts.materialParams || this.materialParams;
-  return this._expandNames(names).map(function(name, i) {
-    if (name instanceof self.THREE.Texture) {
-      var map = name;
-      name = name.name;
-    } else if (typeof name === 'string') {
-      var map = self.THREE.ImageUtils.loadTexture(self.texturePath + ext(name));
-    } else {
-      var map = new self.THREE.Texture(name);
-      name = map.name;
-    }
-    var mat = new opts.materialType(defaults(opts.materialParams, self._materialDefaults));
-    mat.map = map;
-    mat.name = name;
-    // rotate front and left 90 degs
-    //if (self._loadingMesh === true && (i === 1 || i === 4)) self.rotate(mat, 90);
-    self.materials.push(mat);
-    return mat;
+  opts = self._options(opts);
+  if (!isArray(names)) names = [names];
+  return names.map(function(name) {
+    name = self._expandName(name);
+    self.materialIndex.push([self.materials.length, self.materials.length + name.length]);
+    return name.map(function(n) {
+      if (n instanceof self.THREE.Texture) {
+        var map = n;
+        n = n.name;
+      } else if (typeof n === 'string') {
+        var map = self.THREE.ImageUtils.loadTexture(self.texturePath + ext(n));
+      } else {
+        var map = new self.THREE.Texture(n);
+        n = map.name;
+      }
+      self.applyTextureParams(map);
+
+      var mat = new opts.materialType(opts.materialParams);
+      mat.map = map;
+      mat.name = n;
+
+      // rotate front and left 90 degs
+      //if (self._loadingMesh === true && (i === 1 || i === 4)) self.rotate(mat, 90);
+      self.materials.push(mat);
+      return mat;
+    });
   });
   //return (self._loadingMesh !== true) ? new self.THREE.MeshFaceMaterial(data) : data;
 };
 
-Texture.prototype.get = function(names, sides) {
-  var self = this;
-  sides = sides || self.materials.length;
-  if (names == null) return new self.THREE.MeshFaceMaterial(self.materials);
-  if (!isArray(names)) names = [names];
-  names = [].concat.apply([], names.map(function(name) {
-    if (typeof name === 'string') {
-      for (var i = 0; i < self.materials.length; i++) {
-        if (name === self.materials[i].name) { name = i; break; }
+Texture.prototype.get = function(index) {
+  if (typeof index === 'number') {
+    index = this.materialIndex[index];
+  } else {
+    for (var i = 0; i < this.materials.length; i++) {
+      if (index === this.materials[i].name) {
+        index = i;
+        break;
       }
     }
-    name = Number(name);
-    var end = ((name + sides) < self.materials.length) ? name + sides : self.materials.length;
-    return self.materials.slice(name, end);
-  }));
-  return new self.THREE.MeshFaceMaterial(names);
+    for (var i = 0; i < this.materialIndex.length; i++) {
+      var idx = this.materialIndex[i];
+      if (index >= idx[0] && index < idx[1]) {
+        index = idx;
+        break;
+      }
+    }
+  }
+  return new this.THREE.MeshFaceMaterial(this.materials.slice(index[0], index[1]));
 };
 
-Texture.prototype._expandNames = function(names) {
-  if (!isArray(names)) names = [names];
-  return [].concat.apply([], names.map(function(name) {
-    if (name.top) return [name.back, name.front, name.top, name.bottom, name.left, name.right];
-    if (!isArray(name)) return name;
-    // load the 0 texture to all
-    if (name.length === 1) name = [name[0],name[0],name[0],name[0],name[0],name[0]];
-    // 0 is top/bottom, 1 is sides
-    if (name.length === 2) name = [name[1],name[1],name[0],name[0],name[1],name[1]];
-    // 0 is top, 1 is bottom, 2 is sides
-    if (name.length === 3) name = [name[2],name[2],name[0],name[1],name[2],name[2]];
-    // 0 is top, 1 is bottom, 2 is front/back, 3 is left/right
-    if (name.length === 4) name = [name[2],name[2],name[0],name[1],name[3],name[3]];
-    return name;
-  }));
+Texture.prototype._expandName = function(name) {
+  if (name.top) return [name.back, name.front, name.top, name.bottom, name.left, name.right];
+  if (!isArray(name)) name = [name];
+  // load the 0 texture to all
+  if (name.length === 1) name = [name[0],name[0],name[0],name[0],name[0],name[0]];
+  // 0 is top/bottom, 1 is sides
+  if (name.length === 2) name = [name[1],name[1],name[0],name[0],name[1],name[1]];
+  // 0 is top, 1 is bottom, 2 is sides
+  if (name.length === 3) name = [name[2],name[2],name[0],name[1],name[2],name[2]];
+  // 0 is top, 1 is bottom, 2 is front/back, 3 is left/right
+  if (name.length === 4) name = [name[2],name[2],name[0],name[1],name[3],name[3]];
+  return name;
+};
+
+Texture.prototype._options = function(opts) {
+  opts = opts || {};
+  opts.materialType = opts.materialType || this.materialType;
+  opts.materialParams = defaults(opts.materialParams || {}, this._materialDefaults, this.materialParams);
+  opts.applyTextureParams = opts.applyTextureParams || this.applyTextureParams;
+  return opts;
 };
 
 /* deprecated
@@ -177,13 +190,6 @@ Texture.prototype.rotate = function(material, deg) {
 
     material.needsUpdate = true;
   };
-};
-
-Texture.prototype._applyTextureSettings = function(tex) {
-  tex.magFilter = this.THREE.NearestFilter;
-  tex.minFilter = this.THREE.LinearMipMapLinearFilter;
-  tex.wrapT     = this.THREE.RepeatWrapping;
-  tex.wrapS     = this.THREE.RepeatWrapping;
 };
 
 function ext(name) {
