@@ -41,7 +41,7 @@ Texture.prototype.load = function(names, opts) {
       var mat = new opts.materialType(opts.materialParams);
       mat.map = map;
       mat.name = n;
-      self._isTransparent(mat);
+      if (opts.transparent == null) self._isTransparent(mat);
       self.materials.push(mat);
       return mat;
     });

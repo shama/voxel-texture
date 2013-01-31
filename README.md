@@ -51,7 +51,6 @@ To access the raw list of materials:
 var allLoadedMaterials = materialEngine.materials;
 ```
 
-
 ## api
 
 ### require('voxel-texture')(options)
@@ -74,7 +73,7 @@ Returns a new material engine instance. `options` defaults to:
 }
 ```
 
-### materialEngine.load(textures)
+### materialEngine.load(textures, options)
 Loads textures into materials. Will generate materials in various ways depending
 how textures are feed into `load`:
 
@@ -184,6 +183,10 @@ materialEngine.sprite('terrain', 32, function(err, textures) {
 
 It is async because the image must be loaded before we can chop it up. The width
 and height default to `16x16`.
+
+### transparent
+If you don't specify the `transparent` option then the transparency will
+automatically detected with each texture then either turned on or off.
 
 ## install
 With [npm](http://npmjs.org) do:
