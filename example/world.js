@@ -8,7 +8,7 @@ var game = createEngine({
   startingPosition: [200, 200, 0],
   worldOrigin: [0, 0, 0]
 });
-var container = document.body;
+var container = document.getElementById('container');
 game.appendTo(container);
 container.addEventListener('click', function() {
   game.requestPointerLock(container);
@@ -36,17 +36,6 @@ var materialEngine = require('../')({
   texturePath: game.texturePath,
   THREE: game.THREE
 });
-
-// hijack applyTextures
-/*game.applyTextures = function(geom) {
-  // inject materials
-  Object.keys(game.voxels.meshes).forEach(function(k) {
-    var mesh = game.voxels.meshes[k];
-    mesh.surfaceMesh.material = new game.THREE.MeshFaceMaterial(materialEngine.materials);
-  });
-  //game.material = materialEngine.materials;
-  materialEngine.paint.call(materialEngine, geom, materialEngine.materials);
-}*/
 
 // load materials
 materialEngine.load([

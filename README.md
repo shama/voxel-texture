@@ -40,7 +40,6 @@ var grassBlock = new game.THREE.Mesh(
   // or by the index
   new game.THREE.MeshFaceMaterial(materialEngine.get(1))
 );
-
 ```
 
 `materialEngine.load()` can be called mulitple times and the `materialIndex`

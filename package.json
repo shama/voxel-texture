@@ -29,10 +29,11 @@
     "gh-pages": "cp -R ./example/* ./ && browserify world.js -o world.js"
   },
   "dependencies": {
-    "three": "0.54.0"
+    "three": "0.54.0",
+    "opaque": "0.0.1"
   },
   "devDependencies": {
-    "voxel-engine": "~0.3.8",
+    "voxel-engine": "~0.4.3",
     "voxel-debris": "~0.0.4",
     "browservefy": "0.0.0"
   },
