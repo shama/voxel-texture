@@ -150,7 +150,7 @@ var materials = materialEngine.get('dirt');
 // equals [grass_dirt, grass_dirt, grass, dirt, grass_dirt, grass_dirt]
 ```
 
-### materialEngine.paint(where, materials)
+### materialEngine.paint(geometry)
 Applies materials to geometries based on their vertex colors. This is what
 `voxel-engine` uses to paint materials onto voxel meshes:
 
