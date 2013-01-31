@@ -1,3 +1,5 @@
+var transparent = require('opaque').transparent;
+
 function Texture(opts) {
   var self = this;
   if (!(this instanceof Texture)) return new Texture(opts || {});
@@ -7,7 +9,7 @@ function Texture(opts) {
   this.materialParams     = opts.materialParams || {};
   this.materialType       = opts.materialType   || this.THREE.MeshLambertMaterial;
   this.materialIndex      = [];
-  this._materialDefaults  = { ambient: 0xbbbbbb, transparent: true };
+  this._materialDefaults  = { ambient: 0xbbbbbb };
   this.applyTextureParams = opts.applyTextureParams || function(map) {
     map.magFilter = self.THREE.NearestFilter;
     map.minFilter = self.THREE.LinearMipMapLinearFilter;
@@ -39,6 +41,7 @@ Texture.prototype.load = function(names, opts) {
       var mat = new opts.materialType(opts.materialParams);
       mat.map = map;
       mat.name = n;
+      self._isTransparent(mat);
       self.materials.push(mat);
       return mat;
     });
@@ -129,6 +132,24 @@ Texture.prototype.sprite = function(name, w, h, cb) {
     cb(null, textures);
   };
   return self;
+};
+
+Texture.prototype._isTransparent = function(material) {
+  if (!material.map) return;
+  if (!material.map.image) return;
+  if (material.map.image.nodeName.toLowerCase() === 'img') {
+    material.map.image.onload = function() {
+      if (transparent(this)) {
+        material.transparent = true;
+        material.needsUpdate = true;
+      }
+    };
+  } else {
+    if (transparent(material.map.image)) {
+      material.transparent = true;
+      material.needsUpdate = true;
+    }
+  }
 };
 
 function ext(name) {
