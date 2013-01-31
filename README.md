@@ -5,128 +5,186 @@
 View [the demo](http://shama.github.com/voxel-texture).
 
 ## example
-```js
-// Create a texture engine
-var createMaterials = require('voxel-texture');
 
-// Create 6 sided material, all sides same texture
-var materials = createMaterials('grass');
-```
-
-This will load `'/textures/grass.png'`. Change the texture path with:
 ```js
-var textureEngine = require('voxel-texture')({texturePath: '/textures/'});
-var materials = textureEngine.loadTexture('grass');
-```
+// create a material engine
+var materialEngine = require('voxel-texture')({texturePath: '/textures/'});
 
-Then you can use the materials like such:
-```js
+// load textures and it returns materials
+var materials = materialEngine.load(['grass', 'dirt', 'grass_dirt']);
+
+// use the materials to create a grass block
 var cube = new game.THREE.Mesh(
   new game.THREE.CubeGeometry(game.cubeSize, game.cubeSize, game.cubeSize),
-  materials
+  new game.THREE.MeshFaceMaterial(materials)
 );
 ```
 
-OR specify each side of the material:
+Loaded materials can also be retrieved later using `get`:
+
 ```js
-var materials = createMaterials([
-  'grass',      // BACK
-  'dirt',       // FRONT
-  'brick',      // TOP
-  'bedrock',    // BOTTOM
-  'glowstone',  // LEFT
-  'obsidian'    // RIGHT
+materialEngine.load([
+  'obsidian',
+  ['grass', 'dirt', 'grass_dirt'],
+  'brick'
 ]);
+
+var brick = new game.THREE.Mesh(
+  new game.THREE.CubeGeometry(game.cubeSize, game.cubeSize, game.cubeSize),
+  // find by the name
+  new game.THREE.MeshFaceMaterial(materialEngine.get('brick'))
+);
+
+var grassBlock = new game.THREE.Mesh(
+  new game.THREE.CubeGeometry(game.cubeSize, game.cubeSize, game.cubeSize),
+  // or by the index
+  new game.THREE.MeshFaceMaterial(materialEngine.get(1))
+);
+
 ```
 
-OR just the top and sides:
+`materialEngine.load()` can be called mulitple times and the `materialIndex`
+will just keep on incrementing.
+
+To access the raw list of materials:
+
 ```js
-var materials = createMaterials([
-  'grass',      // TOP/BOTTOM
-  'grass_dirt', // SIDES
+var allLoadedMaterials = materialEngine.materials;
+```
+
+
+## api
+
+### require('voxel-texture')(options)
+Returns a new material engine instance. `options` defaults to:
+
+```js
+{
+  THREE: require('three'),
+  materials: [],
+  texturePath: '/textures/',
+  materialParams: { ambient: 0xbbbbbb },
+  materialType: THREE.MeshLambertMaterial,
+  materialIndex: [],
+  applyTextureParams: function(map) {
+    map.magFilter = this.THREE.NearestFilter;
+    map.minFilter = this.THREE.LinearMipMapLinearFilter;
+    map.wrapT     = this.THREE.RepeatWrapping;
+    map.wrapS     = this.THREE.RepeatWrapping;
+  }
+}
+```
+
+### materialEngine.load(textures)
+Loads textures into materials. Will generate materials in various ways depending
+how textures are feed into `load`:
+
+```js
+var materials = materialEngine.load('grass');
+// equals [grass, grass, grass, grass, grass, grass]
+```
+
+```js
+var materials = materialEngine.load(['grass', 'dirt', 'grass_dirt']);
+// equals [grass_dirt, grass_dirt, grass, dirt, grass_dirt, grass_dirt]
+```
+
+```js
+var materials = materialEngine.load([
+  'obsidian',
+  ['back', 'front', 'top', 'bottom', 'left', 'right'],
+  'brick'
 ]);
+/*
+equals [
+  obsidian, obsidian, obsidian, obsidian, obsidian, obsidian,
+  back, front, top, bottom, left, right,
+  brick, brick, brick, brick, brick, brick
+]
+*/
 ```
 
-OR the top, bottom and sides:
+If you've already created a texture, you can mix those in as well. Such as with
+creating a canvas texture:
+
 ```js
-var materials = createMaterials([
-  'grass',      // TOP
-  'dirt',       // BOTTOM
-  'grass_dirt', // SIDES
-]);
+var canvas = document.createElement('canvas');
+// ... do your canvas drawing here ...
+var texture = new game.THREE.Texture(canvas);
+
+// load into the material engine
+materialEngine.load(texture);
 ```
 
-OR the top, bottom, front/back and left/right:
-```js
-var materials = createMaterials([
-  'grass',      // TOP
-  'dirt',       // BOTTOM
-  'grass_dirt', // FRONT/BACK
-  'brick',      // LEFT/RIGHT
-]);
-```
-
-OR if your memory sucks like mine:
-```js
-var materials = createMaterials({
-  top:    'grass',
-  bottom: 'dirt',
-  left:   'grass_dirt',
-  right:  'grass_dirt',
-  front:  'grass_dirt',
-  back:   'grass_dirt'
-});
-```
-_Just be sure to include all the keys_
-
-### Alternate File Extension
-
+#### alternate file extension
 If your texture isn't a `.png`, just specify the extension:
+
 ```js
-var materials = createMaterials([
+var materials = materialEngine.load([
   'diamond',
   'crate.gif',
 ]);
 ```
 
-### voxel meshes
+### materialEngine.get(index)
+Retrieves previously loaded textures. `index` refers to the index of the texture
+group loaded, for instance:
 
-To load up multiple texture sets onto a voxel mesh:
 ```js
-var textureEngine = require('voxel-texture');
-
-// load up each block type / texture
-textureEngine.loadTextures([
-  // grass on top
-  // dirt on bottom
-  // grass_dirt on sides
+materialEngine.load([
+  'obsidian',
   ['grass', 'dirt', 'grass_dirt'],
-
-  // all brick
-  'brick',
-
-  // all obsidian
-  'obsidian'
+  'brick'
 ]);
 
-// var mesh = ... build your voxel mesh
+var materials = materialEngine.get(1);
+// equals [grass_dirt, grass_dirt, grass, dirt, grass_dirt, grass_dirt]
 
-// apply textures to the mesh
-textureEngine.applyTextures(mesh.geometery);
+var materials = materialEngine.get(2);
+// equals [brick, brick, brick, brick, brick, brick]
 ```
 
-### rotate textures
-Sometimes the orientation of the textures needs adjusting:
+You can also use the texture name. It will match the first texture within a
+group and return that group:
 
 ```js
-var textureEngine = require('voxel-texture')
+var materials = materialEngine.get('dirt');
+// equals [grass_dirt, grass_dirt, grass, dirt, grass_dirt, grass_dirt]
+```
 
-var materials = textureEngine.loadTexture(['grass', 'dirt', 'grass_dirt']);
-materials.forEach(function(material) {
-  // rotate texture 90 degrees
-  textureEngine.rotate(material, 90);
+### materialEngine.paint(where, materials)
+Applies materials to geometries based on their vertex colors. This is what
+`voxel-engine` uses to paint materials onto voxel meshes:
+
+```js
+// create a custom mesh and load all materials
+var geom = new game.THREE.Geometry();
+var mesh = new game.THREE.Mesh(
+  geom,
+  new game.THREE.MeshFaceMaterial(materialEngine.get())
+);
+
+// paint the geometry
+materialEngine.paint(geom);
+```
+
+### materialEngine.sprite(name, w, h, cb)
+Create textures from a sprite map. If you have a single image with a bunch of
+textures do:
+
+```js
+// load terrain.png, it is 512x512
+// each texture is 32x32
+materialEngine.sprite('terrain', 32, function(err, textures) {
+  // load textures into the material engine
+  var materials = materialEngine.load(textures);
+
+  // each material will be named: terrain_x_y
 });
 ```
+
+It is async because the image must be loaded before we can chop it up. The width
+and height default to `16x16`.
 
 ## install
 With [npm](http://npmjs.org) do:
@@ -136,6 +194,7 @@ npm install voxel-texture
 ```
 
 ## release history
+* 0.3.0 - refactored entire module. removed rotate. added load, get, paint, sprite methods.
 * 0.2.2 - ability to set material type and params. thanks @hughsk!
 * 0.2.1 - fix rotation of front and left textures when loading mesh
 * 0.2.0 - ability to set multiple textures on voxel meshes

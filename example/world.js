@@ -37,6 +37,17 @@ var materialEngine = require('../')({
   THREE: game.THREE
 });
 
+// hijack applyTextures
+/*game.applyTextures = function(geom) {
+  // inject materials
+  Object.keys(game.voxels.meshes).forEach(function(k) {
+    var mesh = game.voxels.meshes[k];
+    mesh.surfaceMesh.material = new game.THREE.MeshFaceMaterial(materialEngine.materials);
+  });
+  //game.material = materialEngine.materials;
+  materialEngine.paint.call(materialEngine, geom, materialEngine.materials);
+}*/
+
 // load materials
 materialEngine.load([
   ['0'],
