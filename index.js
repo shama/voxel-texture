@@ -96,13 +96,16 @@ Texture.prototype.paint = function(geom) {
   var self = this;
   geom.faces.forEach(function(face, i) {
     var c = face.vertexColors[0];
-    var index = self.materialIndex[Math.floor(c.b*255 + c.g*255*255 + c.r*255*255*255) - 1][0];
+    var index = Math.floor(c.b*255 + c.g*255*255 + c.r*255*255*255);
+    index = self.materialIndex[Math.floor(Math.max(0, index - 1) % self.materialIndex.length)][0];
+
     // BACK, FRONT, TOP, BOTTOM, LEFT, RIGHT
     if      (face.normal.z === 1)  index += 1;
     else if (face.normal.y === 1)  index += 2;
     else if (face.normal.y === -1) index += 3;
     else if (face.normal.x === -1) index += 4;
     else if (face.normal.x === 1)  index += 5;
+
     face.materialIndex = index;
   });
 };
