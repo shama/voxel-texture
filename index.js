@@ -9,6 +9,7 @@ function Texture(opts) {
   this.materialParams     = opts.materialParams || {};
   this.materialType       = opts.materialType   || this.THREE.MeshLambertMaterial;
   this.materialIndex      = [];
+  this._animations        = [];
   this._materialDefaults  = { ambient: 0xbbbbbb };
   this.applyTextureParams = opts.applyTextureParams || function(map) {
     map.magFilter = self.THREE.NearestFilter;
@@ -53,12 +54,8 @@ Texture.prototype.get = function(index) {
   if (typeof index === 'number') {
     index = this.materialIndex[index];
   } else {
-    for (var i = 0; i < this.materials.length; i++) {
-      if (index === this.materials[i].name) {
-        index = i;
-        break;
-      }
-    }
+    var i = this.find(index);
+    if (i !== -1) index = i;
     for (var i = 0; i < this.materialIndex.length; i++) {
       var idx = this.materialIndex[i];
       if (index >= idx[0] && index < idx[1]) {
@@ -68,6 +65,13 @@ Texture.prototype.get = function(index) {
     }
   }
   return this.materials.slice(index[0], index[1]);
+};
+
+Texture.prototype.find = function(name) {
+  for (var i = 0; i < this.materials.length; i++) {
+    if (name === this.materials[i].name) return i;
+  }
+  return -1;
 };
 
 Texture.prototype._expandName = function(name) {
@@ -135,6 +139,38 @@ Texture.prototype.sprite = function(name, w, h, cb) {
     cb(null, textures);
   };
   return self;
+};
+
+Texture.prototype.animate = function(names, delay) {
+  var self = this;
+  delay = delay || 1000;
+  names = names.map(function(name) {
+    return (typeof name === 'string') ? self.find(name) : name;
+  }).filter(function(name) {
+    return (name !== -1);
+  });
+  if (names.length < 2) return false;
+  if (self._clock == null) self._clock = new self.THREE.Clock();
+  var mat = self.materials[names[0]].clone();
+  self.materials.push(mat);
+  names = [self.materials.length - 1, delay, 0].concat(names);
+  self._animations.push(names);
+  return mat;
+};
+
+Texture.prototype.tick = function(dt) {
+  var self = this;
+  if (self._animations.length < 1 || self._clock == null) return false;
+  var t = self._clock.getElapsedTime();
+  self._animations.forEach(function(anim) {
+    var mats = anim.slice(3);
+    var i = Math.round(t / (anim[1] / 1000)) % (mats.length);
+    if (anim[2] !== i) {
+      self.materials[anim[0]].map = self.materials[mats[i]].map;
+      self.materials[anim[0]].needsUpdate = true;
+      anim[2] = i;
+    }
+  });
 };
 
 Texture.prototype._isTransparent = function(material) {

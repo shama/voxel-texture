@@ -33,7 +33,7 @@
     "opaque": "0.0.1"
   },
   "devDependencies": {
-    "voxel-engine": "~0.4.3",
+    "voxel-engine": "~0.5.3",
     "voxel-debris": "~0.0.4",
     "browservefy": "0.0.0"
   },

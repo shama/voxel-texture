@@ -37,6 +37,10 @@ var materialEngine = require('../')({
   THREE: game.THREE
 });
 
+game.on('tick', function(dt) {
+  materialEngine.tick(dt);
+});
+
 // load materials
 materialEngine.load([
   ['0'],
@@ -89,7 +93,7 @@ function createCube(i, materials) {
 
 // retrieve loaded textures
 for (var i = 0; i < 5; i++) createCube(i, materialEngine.get(i));
-createCube(i, materialEngine.get('grass'));
+createCube(i++, materialEngine.get('grass'));
 
 // load a sprite map
 materialEngine.sprite('terrain', 32, function(err, textures) {
@@ -103,4 +107,25 @@ materialEngine.sprite('terrain', 32, function(err, textures) {
     var cube = createCube(x, m);
     cube.mesh.translateX(100);
   }
+
+  // create animated materials
+  var stuff = [];
+  for (var x = 0; x < materialEngine.materials.length; x++) { stuff.push(x); }
+  var disco = materialEngine.animate(stuff, 100);
+  disco.transparent = true;
+  var discoCube = createCube(3, [disco, disco, disco, disco, disco, disco]);
+  discoCube.mesh.translateX(200);
+
+  var breaking = materialEngine.animate([
+    'terrain_0_480', 'terrain_32_480', 'terrain_64_480',
+    'terrain_96_480', 'terrain_128_480', 'terrain_160_480',
+    'terrain_192_480', 'terrain_224_480', 'terrain_256_480',
+  ], 1000);
+  var breakingCube = createCube(4, [breaking, breaking, breaking, breaking, breaking, breaking]);
+  breakingCube.mesh.translateX(200);
+
+  var torch = materialEngine.animate(['terrain_96_192', 'terrain_96_224'], 500);
+  var blank = new game.THREE.MeshLambertMaterial({transparent:true,opacity:0});
+  var torchCube = createCube(5, [torch, torch, blank, blank, torch, torch]);
+  torchCube.mesh.translateX(200);
 });
