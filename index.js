@@ -158,7 +158,7 @@ Texture.prototype.animate = function(names, delay) {
   return mat;
 };
 
-Texture.prototype.tick = function(dt) {
+Texture.prototype.tick = function() {
   var self = this;
   if (self._animations.length < 1 || self._clock == null) return false;
   var t = self._clock.getElapsedTime();

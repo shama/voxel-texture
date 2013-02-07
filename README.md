@@ -150,6 +150,13 @@ var materials = materialEngine.get('dirt');
 // equals [grass_dirt, grass_dirt, grass, dirt, grass_dirt, grass_dirt]
 ```
 
+### materialEngine.find(name)
+Finds the index of a given material name.
+
+```js
+var grass = materialEngine.materials[materialEngine.find('grass')];
+```
+
 ### materialEngine.paint(geometry)
 Applies materials to geometries based on their vertex colors. This is what
 `voxel-engine` uses to paint materials onto voxel meshes:
@@ -183,6 +190,23 @@ materialEngine.sprite('terrain', 32, function(err, textures) {
 
 It is async because the image must be loaded before we can chop it up. The width
 and height default to `16x16`.
+
+### materialEngine.animate(names, delay)
+Create an animated material. A material that after each delay will change it's
+map to another material. Must run `materialEngine.tick()` to actually animate.
+
+```js
+var animated = materialEngine.animate(['one', 'two', 'three'], 1000);
+```
+
+### materialEngine.tick()
+Run the animations for any animated materials.
+
+```js
+game.on('tick', function() {
+  materialEngine.tick();
+});
+```
 
 ### transparent
 If you don't specify the `transparent` option then the transparency will
