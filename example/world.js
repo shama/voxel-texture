@@ -14,6 +14,9 @@ container.addEventListener('click', function() {
   game.requestPointerLock(container);
 });
 
+// Give console access to game
+window.game = game;
+
 var explode = require('voxel-debris')(game, { power : 1.5 });
 
 explode.on('collect', function (item) {
@@ -64,6 +67,8 @@ function createCube(i, materials) {
   // set a random color
   materials.forEach(function(material) {
     material.color = new game.THREE.Color((Math.random() * 0xffffff)|0);
+    // ensure color is reflected in ambient light as well
+    material.ambient = material.color;
   });
 
   // create a mesh
