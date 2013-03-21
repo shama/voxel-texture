@@ -1,7 +1,7 @@
 {
   "name": "voxel-texture",
   "description": "A texture helper for voxeljs",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "homepage": "https://github.com/shama/voxel-texture",
   "author": {
     "name": "Kyle Robinson Young",

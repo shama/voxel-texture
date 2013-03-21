@@ -99,8 +99,7 @@ Texture.prototype._options = function(opts) {
 Texture.prototype.paint = function(geom) {
   var self = this;
   geom.faces.forEach(function(face, i) {
-    var c = face.vertexColors[0];
-    var index = Math.floor(c.b*255 + c.g*255*255 + c.r*255*255*255);
+    var index = Math.floor(face.color.b*255 + face.color.g*255*255 + face.color.r*255*255*255);
     index = self.materialIndex[Math.floor(Math.max(0, index - 1) % self.materialIndex.length)][0];
 
     // BACK, FRONT, TOP, BOTTOM, LEFT, RIGHT
