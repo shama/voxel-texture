@@ -28,8 +28,10 @@
     "start": "echo \"open localhost:8080/\" && cd example && ../node_modules/.bin/browservefy world.js 8080 -- -d",
     "gh-pages": "cp -R ./example/* ./ && browserify world.js -o world.js"
   },
+  "peerDependencies": {
+    "three": "*"
+  },
   "dependencies": {
-    "three": "0.54.0",
     "opaque": "0.0.1"
   },
   "devDependencies": {
