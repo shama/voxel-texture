@@ -220,6 +220,7 @@ npm install voxel-texture
 ```
 
 ## release history
+* 0.3.3 - Move three to peerDependencies. thanks @niftylettuce!
 * 0.3.2 - Use face.color instead of face.vertexColors[0]
 * 0.3.1 - Support for animated materials.
 * 0.3.0 - refactored entire module. removed rotate. added load, get, paint, sprite methods. auto detect transparent.
