@@ -162,8 +162,8 @@ Finds the block type index of a given material name.
 
 ```js
 materialEngine.load([['grass', 'dirt', 'grass_dirt'], 'brick', 'obsidian']);
-var grassIndex = materialEngine.findIndex('grass');
-// grassIndex would equal 3
+var obsidian = materialEngine.findIndex('obsidian');
+// obsidian would equal 3
 ```
 
 ### materialEngine.paint(geometry)
