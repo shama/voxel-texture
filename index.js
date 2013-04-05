@@ -54,15 +54,7 @@ Texture.prototype.get = function(index) {
   if (typeof index === 'number') {
     index = this.materialIndex[index];
   } else {
-    var i = this.find(index);
-    if (i !== -1) index = i;
-    for (var i = 0; i < this.materialIndex.length; i++) {
-      var idx = this.materialIndex[i];
-      if (index >= idx[0] && index < idx[1]) {
-        index = idx;
-        break;
-      }
-    }
+    index = this.materialIndex[this.findIndex(index) - 1];
   }
   return this.materials.slice(index[0], index[1]);
 };
@@ -72,6 +64,17 @@ Texture.prototype.find = function(name) {
     if (name === this.materials[i].name) return i;
   }
   return -1;
+};
+
+Texture.prototype.findIndex = function(name) {
+  var index = this.find(name);
+  for (var i = 0; i < this.materialIndex.length; i++) {
+    var idx = this.materialIndex[i];
+    if (index >= idx[0] && index < idx[1]) {
+      return i + 1;
+    }
+  }
+  return 0;
 };
 
 Texture.prototype._expandName = function(name) {

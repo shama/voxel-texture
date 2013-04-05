@@ -151,10 +151,19 @@ var materials = materialEngine.get('dirt');
 ```
 
 ### materialEngine.find(name)
-Finds the index of a given material name.
+Finds the actual index within the materials array from a given material name.
 
 ```js
 var grass = materialEngine.materials[materialEngine.find('grass')];
+```
+
+### materialEngine.findIndex(name)
+Finds the block type index of a given material name.
+
+```js
+materialEngine.load([['grass', 'dirt', 'grass_dirt'], 'brick', 'obsidian']);
+var grassIndex = materialEngine.findIndex('grass');
+// grassIndex would equal 3
 ```
 
 ### materialEngine.paint(geometry)
