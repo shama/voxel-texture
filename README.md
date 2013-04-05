@@ -229,6 +229,7 @@ npm install voxel-texture
 ```
 
 ## release history
+* 0.4.0 - Add findIndex for finding block type index.
 * 0.3.3 - Move three to peerDependencies. thanks @niftylettuce!
 * 0.3.2 - Use face.color instead of face.vertexColors[0]
 * 0.3.1 - Support for animated materials.
