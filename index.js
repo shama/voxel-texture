@@ -1,4 +1,5 @@
 var transparent = require('opaque').transparent;
+var tic = require('tic');
 
 function Texture(opts) {
   var self = this;
@@ -152,27 +153,21 @@ Texture.prototype.animate = function(names, delay) {
     return (name !== -1);
   });
   if (names.length < 2) return false;
-  if (self._clock == null) self._clock = new self.THREE.Clock();
+
+  var i = 0;
   var mat = self.materials[names[0]].clone();
+  tic.interval(function() {
+    mat.map = self.materials[names[i % names.length]].map;
+    mat.needsUpdate = true;
+    i++;
+  }, delay);
+
   self.materials.push(mat);
-  names = [self.materials.length - 1, delay, 0].concat(names);
-  self._animations.push(names);
   return mat;
 };
 
-Texture.prototype.tick = function() {
-  var self = this;
-  if (self._animations.length < 1 || self._clock == null) return false;
-  var t = self._clock.getElapsedTime();
-  self._animations.forEach(function(anim) {
-    var mats = anim.slice(3);
-    var i = Math.round(t / (anim[1] / 1000)) % (mats.length);
-    if (anim[2] !== i) {
-      self.materials[anim[0]].map = self.materials[mats[i]].map;
-      self.materials[anim[0]].needsUpdate = true;
-      anim[2] = i;
-    }
-  });
+Texture.prototype.tick = function(dt) {
+  tic.tick(dt);
 };
 
 Texture.prototype._isTransparent = function(material) {

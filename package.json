@@ -25,19 +25,21 @@
     "node": ">= 0.8.0"
   },
   "scripts": {
-    "start": "echo \"open localhost:8080/\" && cd example && ../node_modules/.bin/browservefy world.js 8080 -- -d",
+    "start": "cd example && ../node_modules/.bin/browservefy world.js 8080 -- -d",
     "gh-pages": "cp -R ./example/* ./ && browserify world.js -o world.js"
   },
   "peerDependencies": {
     "three": "*"
   },
   "dependencies": {
-    "opaque": "0.0.1"
+    "opaque": "0.0.1",
+    "tic": "~0.1.0"
   },
   "devDependencies": {
-    "voxel-engine": "~0.5.3",
+    "voxel-engine": "~0.16.3",
     "voxel-debris": "~0.0.4",
-    "browservefy": "0.0.9"
+    "browservefy": "0.0.9",
+    "voxel-player": "~0.1.0"
   },
   "keywords": [
     "voxel",

@@ -1,28 +1,30 @@
-var createEngine = require('voxel-engine');
-var game = createEngine({
+var tic = require('tic');
+var createGame = require('voxel-engine');
+
+var game = createGame({
   generate: function(x, y, z) {
     return (Math.sqrt(x*x + y*y + z*z) > 20 || y*y > 10) ? 0 : (Math.random() * 3) + 1;
   },
   materials: ['brick', ['grass', 'dirt', 'grass_dirt']],
-  texturePath: './textures/',
-  startingPosition: [200, 200, 0],
-  worldOrigin: [0, 0, 0]
+  texturePath: 'textures/'
 });
 var container = document.getElementById('container');
 game.appendTo(container);
-container.addEventListener('click', function() {
-  game.requestPointerLock(container);
-});
 
 // Give console access to game
 window.game = game;
 
+// hold the cubes we create
+var cubes = [];
+
+// create a player
+var createPlayer = require('voxel-player')(game);
+var shama = createPlayer('textures/shama.png');
+shama.yaw.position.set(0, 10, 0);
+shama.possess();
+
+// explode voxel on click
 var explode = require('voxel-debris')(game, { power : 1.5 });
-
-explode.on('collect', function (item) {
-  console.log(game.materials[item.value - 1]);
-});
-
 game.on('mousedown', function (pos) {
   if (erase) explode(pos);
   else game.createBlock(pos, 1);
@@ -40,8 +42,13 @@ var materialEngine = require('../')({
   THREE: game.THREE
 });
 
+var elapsed = 0;
 game.on('tick', function(dt) {
   materialEngine.tick(dt);
+  tic.tick(dt);
+  cubes.forEach(function(cube, i) {
+    cube.rotation.y += Math.PI / 180;
+  });
 });
 
 // load materials
@@ -72,27 +79,27 @@ function createCube(i, materials) {
   });
 
   // create a mesh
+  var obj = new game.THREE.Object3D();
   var mesh = new game.THREE.Mesh(
     new game.THREE.CubeGeometry(game.cubeSize, game.cubeSize, game.cubeSize),
     new game.THREE.MeshFaceMaterial(materials)
   );
-  mesh.translateX(0);
-  mesh.translateY(250);
-  mesh.translateZ(-(i * 80) + 200);
+  mesh.translateY(game.cubeSize/2);
+  obj.add(mesh);
+  obj.position.set(3, 5, i * 2);
 
   // create a rotating jumping cube
-  var cube = {
-    mesh: mesh,
-    width: game.cubeSize, height: game.cubeSize, depth: game.cubeSize,
-    collisionRadius: game.cubeSize
-  };
-  cube.tick = function() { cube.mesh.rotation.y += Math.PI / 180; };
-  setInterval(function() {
-    cube.velocity.y += 0.15;
-    cube.resting = false;
+  var cube = game.addItem({
+    mesh: obj,
+    size: game.cubeSize,
+    velocity: {x: 0, y: 0, z: 0}
+  });
+
+  tic.interval(function() {
+    cube.velocity.y += 0.03;
   }, (i * 200) + 2000);
 
-  game.addItem(cube);
+  cubes.push(cube);
   return cube;
 }
 
@@ -110,7 +117,7 @@ materialEngine.sprite('terrain', 32, function(err, textures) {
     var r = Math.floor(Math.random() * (materials.length - 5));
     var m = materials.slice(r, r + 6);
     var cube = createCube(x, m);
-    cube.mesh.translateX(100);
+    cube.mesh.translateX(3);
   }
 
   // create animated materials
@@ -119,7 +126,7 @@ materialEngine.sprite('terrain', 32, function(err, textures) {
   var disco = materialEngine.animate(stuff, 100);
   disco.transparent = true;
   var discoCube = createCube(3, [disco, disco, disco, disco, disco, disco]);
-  discoCube.mesh.translateX(200);
+  discoCube.mesh.translateX(6);
 
   var breaking = materialEngine.animate([
     'terrain_0_480', 'terrain_32_480', 'terrain_64_480',
@@ -127,10 +134,10 @@ materialEngine.sprite('terrain', 32, function(err, textures) {
     'terrain_192_480', 'terrain_224_480', 'terrain_256_480',
   ], 1000);
   var breakingCube = createCube(4, [breaking, breaking, breaking, breaking, breaking, breaking]);
-  breakingCube.mesh.translateX(200);
+  breakingCube.mesh.translateX(6);
 
   var torch = materialEngine.animate(['terrain_96_192', 'terrain_96_224'], 500);
   var blank = new game.THREE.MeshLambertMaterial({transparent:true,opacity:0});
   var torchCube = createCube(5, [torch, torch, blank, blank, torch, torch]);
-  torchCube.mesh.translateX(200);
+  torchCube.mesh.translateX(6);
 });
