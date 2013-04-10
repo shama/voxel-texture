@@ -1,5 +1,5 @@
 var transparent = require('opaque').transparent;
-var tic = require('tic');
+var tic = require('tic')();
 
 function Texture(opts) {
   var self = this;

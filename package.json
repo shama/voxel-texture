@@ -33,7 +33,7 @@
   },
   "dependencies": {
     "opaque": "0.0.1",
-    "tic": "~0.1.0"
+    "tic": "~0.2.0"
   },
   "devDependencies": {
     "voxel-engine": "~0.16.3",

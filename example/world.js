@@ -1,4 +1,4 @@
-var tic = require('tic');
+var tic = require('tic')();
 var createGame = require('voxel-engine');
 
 var game = createGame({
