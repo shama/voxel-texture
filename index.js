@@ -1,11 +1,13 @@
 var transparent = require('opaque').transparent;
 var tic = require('tic')();
+var createAtlas = require('atlaspack');
 
 function Texture(opts) {
   var self = this;
   if (!(this instanceof Texture)) return new Texture(opts || {});
-  this.THREE              = opts.THREE          || require('three');
-  this.materials          = [];
+  this.game               = opts.game;
+  this.THREE              = this.game.THREE;
+  this.materials          = Object.create(null);
   this.texturePath        = opts.texturePath    || '/textures/';
   this.materialParams     = opts.materialParams || {};
   this.materialType       = opts.materialType   || this.THREE.MeshLambertMaterial;
@@ -15,9 +17,24 @@ function Texture(opts) {
   this.applyTextureParams = opts.applyTextureParams || function(map) {
     map.magFilter = self.THREE.NearestFilter;
     map.minFilter = self.THREE.LinearMipMapLinearFilter;
-    map.wrapT     = self.THREE.RepeatWrapping;
-    map.wrapS     = self.THREE.RepeatWrapping;
+    //map.wrapT = map.wrapS = self.THREE.RepeatWrapping;
   }
+
+  // create a canvas for the texture atlas
+  this._canvas = document.createElement('canvas');
+  this._canvas.width = 64;
+  this._canvas.height = 64;
+
+  // create core atlas and texture
+  this._atlas = createAtlas(this._canvas);
+  this._atlasuv = false;
+  this._texture = new this.THREE.Texture(this._canvas);
+  self.applyTextureParams.call(self, this._texture);
+
+  // create core material for easy application to meshes
+  this.material = new this.materialType(this.materialParams);
+  this.material.map = this._texture;
+  this.material.transparent = true;
 }
 module.exports = Texture;
 
@@ -26,40 +43,80 @@ Texture.prototype.load = function(names, opts) {
   opts = self._options(opts);
   if (!isArray(names)) names = [names];
   if (!hasSubArray(names)) names = [names];
-  return [].concat.apply([], names.map(function(name) {
-    name = self._expandName(name);
-    self.materialIndex.push([self.materials.length, self.materials.length + name.length]);
-    return name.map(function(n) {
-      if (n instanceof self.THREE.Texture) {
-        var map = n;
-        n = n.name;
-      } else if (typeof n === 'string') {
-        var map = self.THREE.ImageUtils.loadTexture(self.texturePath + ext(n));
-      } else {
-        var map = new self.THREE.Texture(n);
-        n = map.name;
-      }
-      self.applyTextureParams.call(self, map);
-      var mat = new opts.materialType(opts.materialParams);
-      mat.map = map;
-      mat.name = n;
-      if (opts.transparent == null) self._isTransparent(mat);
-      self.materials.push(mat);
-      return mat;
+
+  // create materials
+  var created = Object.create(null);
+  function createMaterial(name, type) {
+    if (created[name]) return created[name];
+    var mat = new opts.materialType(opts.materialParams);
+    mat.map = self._texture;
+    mat.name = name;
+    mat.transparent = true;
+    return created[name] = mat;
+  }
+
+  // expand and create materials object
+  var type = Object.keys(self.materials).length;
+  var materialSlice = Object.create(null);
+  names.map(self._expandName).forEach(function(group) {
+    var materials = [];
+    group.forEach(function(name) {
+      materials.push(createMaterial(name, type));
     });
+    materialSlice[type] = self.materials[type] = materials;
+    type++;
+  });
+
+  // load onto the texture atlas
+  self._atlasuv = false;
+  var load = Object.create(null);
+  Object.keys(materialSlice).forEach(function(k) {
+    materialSlice[k].forEach(function(mat) {
+      load[mat.name] = true;
+    });
+  });
+  each(Object.keys(load), self.pack.bind(self), function() {
+    self._atlasuv = self._atlas.uv();
+    self._texture.needsUpdate = true;
+    self.material.needsUpdate = true;
+    //window.open(self._canvas.toDataURL());
+    Object.keys(self.game.voxels.meshes).forEach(function(pos) {
+      self.game.voxels.meshes[pos].geometry = self.paint(self.game.voxels.meshes[pos].geometry);
+    });
+  });
+
+  return materialSlice;
+};
+
+Texture.prototype.pack = function(name, done) {
+  var self = this;
+  function pack(img) {
+    var node = self._atlas.pack(img);
+    if (node === false) {
+      self._atlas = self._atlas.expand(img);
+    }
+    done();
+  }
+  if (typeof name === 'string') {
+    var img = new Image();
+    img.src = self.texturePath + ext(name);
+    img.id = name;
+    img.onload = function() {
+      pack(img);
+    };
+  }
+  return self;
+};
+
+Texture.prototype.get = function(type) {
+  var self = this;
+  if (type) return self.materials[type];
+  return [].concat.apply([], Object.keys(self.materials).map(function(k) {
+    return self.materials[k];
   }));
 };
 
-Texture.prototype.get = function(index) {
-  if (index == null) return this.materials;
-  if (typeof index === 'number') {
-    index = this.materialIndex[index];
-  } else {
-    index = this.materialIndex[this.findIndex(index) - 1];
-  }
-  return this.materials.slice(index[0], index[1]);
-};
-
+/*
 Texture.prototype.find = function(name) {
   for (var i = 0; i < this.materials.length; i++) {
     if (name === this.materials[i].name) return i;
@@ -67,6 +124,7 @@ Texture.prototype.find = function(name) {
   return -1;
 };
 
+// TODO: Change this to find the type of a given name
 Texture.prototype.findIndex = function(name) {
   var index = this.find(name);
   for (var i = 0; i < this.materialIndex.length; i++) {
@@ -77,6 +135,7 @@ Texture.prototype.findIndex = function(name) {
   }
   return 0;
 };
+*/
 
 Texture.prototype._expandName = function(name) {
   if (name.top) return [name.back, name.front, name.top, name.bottom, name.left, name.right];
@@ -102,21 +161,56 @@ Texture.prototype._options = function(opts) {
 
 Texture.prototype.paint = function(geom) {
   var self = this;
+  if (self._atlasuv === false) return;
+
   geom.faces.forEach(function(face, i) {
+    if (geom.faceVertexUvs[0].length < 1) return;
+
     var index = Math.floor(face.color.b*255 + face.color.g*255*255 + face.color.r*255*255*255);
-    index = self.materialIndex[Math.floor(Math.max(0, index - 1) % self.materialIndex.length)][0];
+    var materials = self.materials[index - 1];
+    if (!materials) materials = self.materials[0];
 
     // BACK, FRONT, TOP, BOTTOM, LEFT, RIGHT
-    if      (face.normal.z === 1)  index += 1;
-    else if (face.normal.y === 1)  index += 2;
-    else if (face.normal.y === -1) index += 3;
-    else if (face.normal.x === -1) index += 4;
-    else if (face.normal.x === 1)  index += 5;
+    var name = materials[0].name;
+    if      (face.normal.z === 1)  name = materials[1].name;
+    else if (face.normal.y === 1)  name = materials[2].name;
+    else if (face.normal.y === -1) name = materials[3].name;
+    else if (face.normal.x === -1) name = materials[4].name;
+    else if (face.normal.x === 1)  name = materials[5].name;
 
-    face.materialIndex = index;
+    var atlasuv = self._atlasuv[name];
+    if (!atlasuv) return;
+
+    // 0 -- 1
+    // |    |
+    // 3 -- 2
+    // faces on these meshes are flipped vertically, so we map in reverse
+    if (face.normal.z === -1 || face.normal.x === 1) {
+      geom.faceVertexUvs[0][i][0].x =     atlasuv[2][0];
+      geom.faceVertexUvs[0][i][0].y = 1 - atlasuv[2][1];
+      geom.faceVertexUvs[0][i][1].x =     atlasuv[1][0];
+      geom.faceVertexUvs[0][i][1].y = 1 - atlasuv[1][1];
+      geom.faceVertexUvs[0][i][2].x =     atlasuv[0][0];
+      geom.faceVertexUvs[0][i][2].y = 1 - atlasuv[0][1];
+      geom.faceVertexUvs[0][i][3].x =     atlasuv[3][0];
+      geom.faceVertexUvs[0][i][3].y = 1 - atlasuv[3][1];
+    } else {
+      geom.faceVertexUvs[0][i][0].x =     atlasuv[3][0];
+      geom.faceVertexUvs[0][i][0].y = 1 - atlasuv[3][1];
+      geom.faceVertexUvs[0][i][1].x =     atlasuv[2][0];
+      geom.faceVertexUvs[0][i][1].y = 1 - atlasuv[2][1];
+      geom.faceVertexUvs[0][i][2].x =     atlasuv[1][0];
+      geom.faceVertexUvs[0][i][2].y = 1 - atlasuv[1][1];
+      geom.faceVertexUvs[0][i][3].x =     atlasuv[0][0];
+      geom.faceVertexUvs[0][i][3].y = 1 - atlasuv[0][1];
+    }
   });
+
+  geom.uvsNeedUpdate = true;
+  return geom;
 };
 
+// TODO: fix this to load onto the atlas
 Texture.prototype.sprite = function(name, w, h, cb) {
   var self = this;
   if (typeof w === 'function') { cb = w; w = null; }
@@ -144,6 +238,7 @@ Texture.prototype.sprite = function(name, w, h, cb) {
   return self;
 };
 
+// TODO: fix this
 Texture.prototype.animate = function(names, delay) {
   var self = this;
   delay = delay || 1000;
@@ -170,6 +265,7 @@ Texture.prototype.tick = function(dt) {
   tic.tick(dt);
 };
 
+// TODO: Deprecate this
 Texture.prototype._isTransparent = function(material) {
   if (!material.map) return;
   if (!material.map.image) return;
@@ -208,4 +304,14 @@ function defaults(obj) {
     if (from) for (var k in from) if (obj[k] == null) obj[k] = from[k];
   });
   return obj;
+}
+
+function each(arr, it, done) {
+  var count = 0;
+  arr.forEach(function(a) {
+    it(a, function() {
+      count++;
+      if (count >= arr.length) done();
+    });
+  });
 }

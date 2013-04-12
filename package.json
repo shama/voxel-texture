@@ -28,12 +28,10 @@
     "start": "cd example && ../node_modules/.bin/browservefy world.js 8080 -- -d",
     "gh-pages": "cp -R ./example/* ./ && browserify world.js -o world.js"
   },
-  "peerDependencies": {
-    "three": "*"
-  },
   "dependencies": {
     "opaque": "0.0.1",
-    "tic": "~0.2.0"
+    "tic": "~0.2.0",
+    "atlaspack": "~0.2.1"
   },
   "devDependencies": {
     "voxel-engine": "~0.16.3",
