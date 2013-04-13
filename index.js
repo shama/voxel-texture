@@ -3,36 +3,40 @@ var tic = require('tic')();
 var createAtlas = require('atlaspack');
 
 function Texture(opts) {
-  var self = this;
   if (!(this instanceof Texture)) return new Texture(opts || {});
-  this.game               = opts.game;
-  this.THREE              = this.game.THREE;
-  this.materials          = Object.create(null);
-  this.texturePath        = opts.texturePath    || '/textures/';
-  this.materialParams     = opts.materialParams || {};
-  this.materialType       = opts.materialType   || this.THREE.MeshLambertMaterial;
-  this.materialIndex      = [];
-  this._animations        = [];
-  this._materialDefaults  = { ambient: 0xbbbbbb };
-  this.applyTextureParams = opts.applyTextureParams || function(map) {
-    map.magFilter = self.THREE.NearestFilter;
-    map.minFilter = self.THREE.LinearMipMapLinearFilter;
-    //map.wrapT = map.wrapS = self.THREE.RepeatWrapping;
-  }
+  this.game = opts.game;
+  this.THREE = this.game.THREE;
+  this.materials = Object.create(null);
+  this.texturePath = opts.texturePath || '/textures/';
+
+  this.options = defaults(opts || {}, {
+    crossOrigin: 'Anonymous',
+    materialParams: defaults(opts.materialParams || {}, {
+      ambient: 0xbbbbbb
+    }),
+    materialType: this.THREE.MeshLambertMaterial,
+    applyTextureParams: function(map) {
+      map.magFilter = this.THREE.NearestFilter;
+      map.minFilter = this.THREE.LinearMipMapLinearFilter;
+      //map.wrapT = map.wrapS = self.THREE.RepeatWrapping;
+    }.bind(this)
+  });
+
+  this._animations = [];
 
   // create a canvas for the texture atlas
   this._canvas = document.createElement('canvas');
-  this._canvas.width = 1024;
-  this._canvas.height = 1024;
+  this._canvas.width = opts.atlasWidth || 1024;
+  this._canvas.height = opts.atlasHeight || 1024;
 
   // create core atlas and texture
   this._atlas = createAtlas(this._canvas);
   this._atlasuv = false;
   this._texture = new this.THREE.Texture(this._canvas);
-  self.applyTextureParams.call(self, this._texture);
+  this.options.applyTextureParams.call(self, this._texture);
 
   // create core material for easy application to meshes
-  this.material = new this.materialType(this.materialParams);
+  this.material = new this.options.materialType(this.options.materialParams);
   this.material.map = this._texture;
   this.material.transparent = true;
 }
@@ -40,9 +44,8 @@ module.exports = Texture;
 
 Texture.prototype.load = function(names, opts) {
   var self = this;
-  opts = self._options(opts);
+  opts = defaults(opts || {}, this.options);
   if (!isArray(names)) names = [names];
-  if (!hasSubArray(names)) names = [names];
 
   // create materials
   var created = Object.create(null);
@@ -101,9 +104,12 @@ Texture.prototype.pack = function(name, done) {
     var img = new Image();
     img.src = self.texturePath + ext(name);
     img.id = name;
-    img.crossOrigin = 'Anonymous';
+    img.crossOrigin = self.options.crossOrigin;
     img.onload = function() {
       pack(img);
+    };
+    img.onerror = function() {
+      console.error('Couldn\'t load URL [' + img.src + ']');
     };
   }
   return self;
@@ -153,14 +159,6 @@ Texture.prototype._expandName = function(name) {
   // 0 is top, 1 is bottom, 2 is front/back, 3 is left/right
   if (name.length === 4) name = [name[2],name[2],name[0],name[1],name[3],name[3]];
   return name;
-};
-
-Texture.prototype._options = function(opts) {
-  opts = opts || {};
-  opts.materialType = opts.materialType || this.materialType;
-  opts.materialParams = defaults(opts.materialParams || {}, this._materialDefaults, this.materialParams);
-  opts.applyTextureParams = opts.applyTextureParams || this.applyTextureParams;
-  return opts;
 };
 
 Texture.prototype.paint = function(geom) {
@@ -295,12 +293,6 @@ function ext(name) {
 // copied from https://github.com/joyent/node/blob/master/lib/util.js#L433
 function isArray(ar) {
   return Array.isArray(ar) || (typeof ar === 'object' && Object.prototype.toString.call(ar) === '[object Array]');
-}
-
-function hasSubArray(ar) {
-  var has = false;
-  ar.forEach(function(a) { if (isArray(a)) { has = true; return false; } });
-  return has;
 }
 
 function defaults(obj) {
