@@ -22,8 +22,8 @@ function Texture(opts) {
 
   // create a canvas for the texture atlas
   this._canvas = document.createElement('canvas');
-  this._canvas.width = 64;
-  this._canvas.height = 64;
+  this._canvas.width = 1024;
+  this._canvas.height = 1024;
 
   // create core atlas and texture
   this._atlas = createAtlas(this._canvas);
@@ -101,6 +101,7 @@ Texture.prototype.pack = function(name, done) {
     var img = new Image();
     img.src = self.texturePath + ext(name);
     img.id = name;
+    img.crossOrigin = 'Anonymous';
     img.onload = function() {
       pack(img);
     };
@@ -123,19 +124,22 @@ Texture.prototype.find = function(name) {
   }
   return -1;
 };
-
-// TODO: Change this to find the type of a given name
-Texture.prototype.findIndex = function(name) {
-  var index = this.find(name);
-  for (var i = 0; i < this.materialIndex.length; i++) {
-    var idx = this.materialIndex[i];
-    if (index >= idx[0] && index < idx[1]) {
-      return i + 1;
-    }
-  }
-  return 0;
-};
 */
+
+Texture.prototype.findIndex = function(name) {
+  var self = this;
+  var type = 0;
+  Object.keys(self.materials).forEach(function(i) {
+    self.materials[i].forEach(function(mat) {
+      if (mat.name === name) {
+        type = i;
+        return false;
+      }
+    });
+    if (type !== 0) return false;
+  });
+  return type;
+};
 
 Texture.prototype._expandName = function(name) {
   if (name.top) return [name.back, name.front, name.top, name.bottom, name.left, name.right];
@@ -238,7 +242,7 @@ Texture.prototype.sprite = function(name, w, h, cb) {
   return self;
 };
 
-// TODO: fix this
+// TODO: instead of names just pass materials to animate
 Texture.prototype.animate = function(names, delay) {
   var self = this;
   delay = delay || 1000;
