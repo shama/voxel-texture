@@ -17,7 +17,6 @@ function Texture(opts) {
     applyTextureParams: function(map) {
       map.magFilter = this.THREE.NearestFilter;
       map.minFilter = this.THREE.LinearMipMapLinearFilter;
-      //map.wrapT = map.wrapS = self.THREE.RepeatWrapping;
     }.bind(this)
   });
 
@@ -106,14 +105,13 @@ Texture.prototype.pack = function(name, done) {
   return self;
 };
 
-// TODO: Remove findIndex and just have find
 Texture.prototype.find = function(name) {
   var self = this;
   var type = 0;
   self.materials.forEach(function(mats, i) {
     mats.forEach(function(mat) {
       if (mat === name) {
-        type = i;
+        type = i + 1;
         return false;
       }
     });
