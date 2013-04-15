@@ -2,14 +2,20 @@ var tic = require('tic')();
 var createGame = require('voxel-engine');
 
 var game = createGame({
+  chunkDistance: 2,
   generate: function(x, y, z) {
     return (Math.sqrt(x*x + y*y + z*z) > 20 || y*y > 10) ? 0 : (Math.random() * 3) + 1;
   },
-  materials: ['brick', ['grass', 'dirt', 'grass_dirt']],
+  materials: ['brick', ['grass', 'dirt', 'grass_dirt'], 'dirt'],
   texturePath: 'textures/'
 });
 var container = document.getElementById('container');
 game.appendTo(container);
+
+game.addStats();
+
+// Our texture builder
+var materialEngine = game.materials;
 
 // Give console access to game
 window.game = game;
@@ -25,7 +31,8 @@ shama.possess();
 
 // explode voxel on click
 var explode = require('voxel-debris')(game, { power : 1.5 });
-game.on('mousedown', function (pos) {
+game.on('fire', function(pos) {
+  var pos = game.raycast(game.cameraPosition(), game.cameraVector(), 100).voxel;
   if (erase) explode(pos);
   else game.createBlock(pos, 1);
 });
@@ -36,13 +43,6 @@ window.addEventListener('keyup', ctrlToggle);
 var erase = true;
 function ctrlToggle (ev) { erase = !ev.ctrlKey }
 
-// Our texture builder
-var materialEngine = require('../')({
-  texturePath: './textures/',
-  THREE: game.THREE
-});
-
-var elapsed = 0;
 game.on('tick', function(dt) {
   materialEngine.tick(dt);
   tic.tick(dt);
@@ -51,42 +51,20 @@ game.on('tick', function(dt) {
   });
 });
 
-// load materials
-materialEngine.load([
-  ['0'],
-  ['0', '1'],
-  ['0', '1', '2'],
-  ['0', '1', '2', '3'],
-  ['0', '1', '2', '3', '4', '5'],
-  {
-    top:    'grass',
-    bottom: 'dirt',
-    front:  'grass_dirt',
-    back:   'grass_dirt',
-    left:   'grass_dirt',
-    right:  'grass_dirt'
-  }
-], {
-  materialType: game.THREE.MeshPhongShader
-});
-
 function createCube(i, materials) {
-  // set a random color
-  materials.forEach(function(material) {
-    material.color = new game.THREE.Color((Math.random() * 0xffffff)|0);
-    // ensure color is reflected in ambient light as well
-    material.ambient = material.color;
-  });
-
   // create a mesh
   var obj = new game.THREE.Object3D();
   var mesh = new game.THREE.Mesh(
     new game.THREE.CubeGeometry(game.cubeSize, game.cubeSize, game.cubeSize),
-    new game.THREE.MeshFaceMaterial(materials)
+    game.materials.material
   );
   mesh.translateY(game.cubeSize/2);
   obj.add(mesh);
   obj.position.set(3, 5, i * 2);
+
+  // paint the mesh
+  materialEngine.paint(mesh, materials);
+  mesh.geometry.uvsNeedUpdate = true;
 
   // create a rotating jumping cube
   var cube = game.addItem({
@@ -103,41 +81,57 @@ function createCube(i, materials) {
   return cube;
 }
 
-// retrieve loaded textures
-for (var i = 0; i < 5; i++) createCube(i, materialEngine.get(i));
-createCube(i++, materialEngine.get('grass'));
-
-// load a sprite map
-materialEngine.sprite('terrain', 32, function(err, textures) {
-  // load textures into materials
-  var materials = materialEngine.load(textures);
-
-  // create cubes randomly textured from the sprite map
-  for (var x = 0; x < 6; x++) {
-    var r = Math.floor(Math.random() * (materials.length - 5));
-    var m = materials.slice(r, r + 6);
-    var cube = createCube(x, m);
-    cube.mesh.translateX(3);
+// load materials
+var materials = [
+  ['0'],
+  ['0', '1'],
+  ['0', '1', '2'],
+  ['0', '1', '2', '3'],
+  ['0', '1', '2', '3', '4', '5'],
+  {
+    top:    'grass',
+    bottom: 'dirt',
+    front:  'grass_dirt',
+    back:   'grass_dirt',
+    left:   'grass_dirt',
+    right:  'grass_dirt'
+  }
+];
+materialEngine.load(materials, function() {
+  for (var i = 0; i < materials.length; i++) {
+    createCube(i, materials[i]);
   }
 
-  // create animated materials
-  var stuff = [];
-  for (var x = 0; x < materialEngine.materials.length; x++) { stuff.push(x); }
-  var disco = materialEngine.animate(stuff, 100);
-  disco.transparent = true;
-  var discoCube = createCube(3, [disco, disco, disco, disco, disco, disco]);
-  discoCube.mesh.translateX(6);
+  // load a sprite map
+  materialEngine.sprite('terrain', 32, function(textures) {
+    // create cubes randomly textured from the sprite map
+    for (var x = 0; x < 6; x++) {
+      var cube = createCube(x, textures[Math.floor(Math.random() * textures.length)]);
+      cube.mesh.translateX(3);
+    }
 
-  var breaking = materialEngine.animate([
-    'terrain_0_480', 'terrain_32_480', 'terrain_64_480',
-    'terrain_96_480', 'terrain_128_480', 'terrain_160_480',
-    'terrain_192_480', 'terrain_224_480', 'terrain_256_480',
-  ], 1000);
-  var breakingCube = createCube(4, [breaking, breaking, breaking, breaking, breaking, breaking]);
-  breakingCube.mesh.translateX(6);
+    // create animated materials
+    var all = [].concat.apply([], materialEngine.materials);
+    var discoCube = createCube(3, 1).mesh;
+    discoCube.translateX(6);
+    discoCube.children[0].mat = materialEngine.animate(discoCube.children[0], all, 100);
 
-  var torch = materialEngine.animate(['terrain_96_192', 'terrain_96_224'], 500);
-  var blank = new game.THREE.MeshLambertMaterial({transparent:true,opacity:0});
-  var torchCube = createCube(5, [torch, torch, blank, blank, torch, torch]);
-  torchCube.mesh.translateX(6);
+    var breaking = createCube(4, 1).mesh;
+    breaking.translateX(6);
+    breaking.children[0].mat = materialEngine.animate(breaking.children[0], [
+      'terrain_0_480', 'terrain_32_480', 'terrain_64_480',
+      'terrain_96_480', 'terrain_128_480', 'terrain_160_480',
+      'terrain_192_480', 'terrain_224_480', 'terrain_256_480',
+    ], 1000);
+
+    var torch = createCube(5, 1).mesh;
+    torch.translateX(6);
+    var blank = new game.THREE.MeshLambertMaterial({transparent:true,opacity:0});
+    var torchMat = materialEngine.animate(torch.children[0], [
+      'terrain_96_192', 'terrain_96_224'
+    ], 500);
+    torch.children[0].mat = new game.THREE.MeshFaceMaterial([
+      torchMat, torchMat, blank, blank, torchMat, torchMat
+    ]);
+  });
 });
