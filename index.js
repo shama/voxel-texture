@@ -7,7 +7,7 @@ function Texture(opts) {
   this.THREE = this.game.THREE;
   this.materials = [];
   this.texturePath = opts.texturePath || '/textures/';
-  this.loading = false;
+  this.loading = 0;
 
   this.options = defaults(opts || {}, {
     crossOrigin: 'Anonymous',
@@ -64,6 +64,7 @@ Texture.prototype.load = function(names, done) {
   });
   each(Object.keys(load), self.pack.bind(self), function() {
     self._afterLoading();
+    self.needsUpdate = true;
     done(materialSlice);
   });
   return materialSlice;
@@ -127,30 +128,31 @@ Texture.prototype._expandName = function(name) {
 
 Texture.prototype._afterLoading = function() {
   var self = this;
-  self.loading = false;
-  self._atlasuv = self.atlas.uv();
-  self._atlaskey = Object.create(null);
-  self.atlas.index().forEach(function(key) {
-    self._atlaskey[key.name] = key;
-  });
-  self.texture.needsUpdate = true;
-  self.material.needsUpdate = true;
-  self.material.map.needsUpdate = true;
-  //window.open(self.canvas.toDataURL());
-  if (self._meshQueue.length > 0) {
-    self._meshQueue.forEach(function(queue) {
-      self.paint.apply(self, queue);
+  setTimeout(function() {
+    self.loading--;
+    self._atlasuv = self.atlas.uv();
+    self._atlaskey = Object.create(null);
+    self.atlas.index().forEach(function(key) {
+      self._atlaskey[key.name] = key;
     });
-    self._meshQueue = [];
-  }
+    self.texture.needsUpdate = true;
+    self.material.needsUpdate = true;
+    //window.open(self.canvas.toDataURL());
+    if (self._meshQueue.length > 0) {
+      self._meshQueue.forEach(function(queue, i) {
+        self.paint.apply(queue.self, queue.args);
+        delete self._meshQueue[i];
+      });
+    }
+  }, 100);
 };
 
 Texture.prototype.paint = function(mesh, materials) {
   var self = this;
 
   // if were loading put into queue
-  if (self.loading) {
-    self._meshQueue.push(arguments);
+  if (self.loading > 0) {
+    self._meshQueue.push({self: self, args: arguments});
     return false;
   }
 
@@ -203,7 +205,7 @@ Texture.prototype.sprite = function(name, w, h, cb) {
   if (typeof w === 'function') { cb = w; w = null; }
   if (typeof h === 'function') { cb = h; h = null; }
   w = w || 16; h = h || w;
-  self.loading = true;
+  self.loading++;
   var img = new Image();
   img.src = self.texturePath + ext(name);
   img.onerror = cb;
