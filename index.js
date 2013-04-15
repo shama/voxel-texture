@@ -21,8 +21,6 @@ function Texture(opts) {
     }.bind(this)
   });
 
-  this._animations = [];
-
   // create a canvas for the texture atlas
   this.canvas = document.createElement('canvas');
   this.canvas.width = opts.atlasWidth || 512;
@@ -49,7 +47,7 @@ Texture.prototype.load = function(names, done) {
   var self = this;
   if (!Array.isArray(names)) names = [names];
   done = done || function() {};
-  this.loading = true;
+  this.loading++;
 
   var materialSlice = names.map(self._expandName);
   self.materials = self.materials.concat(materialSlice);
@@ -64,10 +62,8 @@ Texture.prototype.load = function(names, done) {
   });
   each(Object.keys(load), self.pack.bind(self), function() {
     self._afterLoading();
-    self.needsUpdate = true;
     done(materialSlice);
   });
-  return materialSlice;
 };
 
 Texture.prototype.pack = function(name, done) {
