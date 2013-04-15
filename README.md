@@ -5,7 +5,7 @@
 
 View [the demo](http://shama.github.com/voxel-texture).
 
-** ATTENTION! v0.5.0 has changed dramatically. This library is no longer is
+**ATTENTION! v0.5.0 has changed dramatically. This library is no longer is
 materials API but just loads textures onto an atlas and sets UV mappings.**
 
 ## example
@@ -35,8 +35,9 @@ textureEngine.load(['grass', 'dirt', 'grass_dirt'], function(textures) {
 
 ## api
 
-### require('voxel-texture')(options)
-Returns a new texture engine instance. `options` defaults to:
+### `require('voxel-texture')(options)`
+Returns a new texture engine instance. Must pass a copy of your voxel.js
+`game`. `options` defaults to:
 
 ```js
 {
@@ -50,7 +51,7 @@ Returns a new texture engine instance. `options` defaults to:
 }
 ```
 
-### textureEngine.load(textures, callback)
+### `textureEngine.load(textures, callback)`
 Loads textures onto the atlas by expanding the texture names:
 
 ```js
@@ -81,7 +82,7 @@ textureEngine.load([
 });
 ```
 
-### textureEngine.find(name)
+### `textureEngine.find(name)`
 Finds the type of block by texture name:
 
 ```js
@@ -95,7 +96,7 @@ Although this is built into the voxel engine so you could just do:
 game.setBlock([0, 0, 0], 'grass');
 ```
 
-### textureEngine.paint(mesh, textures)
+### `textureEngine.paint(mesh, textures)`
 Modifies the UV mapping of given `mesh` to the `textures` names supplied:
 
 ```js
@@ -117,7 +118,7 @@ texture based on color from all the previously loaded textures:
 textureEngine.paint(voxelMesh);
 ```
 
-### textureEngine.sprite(name, w, h, callback)
+### `textureEngine.sprite(name, w, h, callback)`
 Create textures from a sprite map. If you have a single image with a bunch of
 textures do:
 
@@ -131,7 +132,7 @@ textureEngine.sprite('terrain', 32, function(textures) {
 
 The width and height default to `16x16`.
 
-### textureEngine.animate(mesh, textures, delay)
+### `textureEngine.animate(mesh, textures, delay)`
 Create an animated material. A material that after each delay will paint the
 mesh by iterating through `textures`. Must run `textureEngine.tick()` to
 actually animate.
@@ -144,7 +145,7 @@ var mesh = new game.THREE.Mesh(
 mesh.material = textureEngine.animate(mesh, ['one', 'two', 'three'], 1000);
 ```
 
-### textureEngine.tick(delta)
+### `textureEngine.tick(delta)`
 Run the animations for any animated materials.
 
 ```js
