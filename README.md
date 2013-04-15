@@ -162,6 +162,7 @@ npm install voxel-texture
 ```
 
 ## release history
+* 0.5.1 - Fix CORS support.
 * 0.5.0 - No longer a materials API. Loads textures onto an atlas and sets UV mappings.
 * 0.4.0 - Add findIndex for finding block type index.
 * 0.3.3 - Move three to peerDependencies. thanks @niftylettuce!

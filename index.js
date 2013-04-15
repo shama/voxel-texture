@@ -77,9 +77,9 @@ Texture.prototype.pack = function(name, done) {
   }
   if (typeof name === 'string') {
     var img = new Image();
-    img.src = self.texturePath + ext(name);
     img.id = name;
     img.crossOrigin = self.options.crossOrigin;
+    img.src = self.texturePath + ext(name);
     img.onload = function() {
       pack(img);
     };
