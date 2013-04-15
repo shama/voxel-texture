@@ -7,6 +7,7 @@ function Texture(opts) {
   this.THREE = this.game.THREE;
   this.materials = [];
   this.texturePath = opts.texturePath || '/textures/';
+  this.loading = false;
 
   this.options = defaults(opts || {}, {
     crossOrigin: 'Anonymous',
@@ -47,12 +48,12 @@ module.exports = Texture;
 Texture.prototype.load = function(names) {
   var self = this;
   if (!Array.isArray(names)) names = [names];
+  this.loading = true;
 
   var materialSlice = names.map(self._expandName);
   self.materials = self.materials.concat(materialSlice);
 
   // load onto the texture atlas
-  self._atlasuv = false;
   var load = Object.create(null);
   materialSlice.forEach(function(mats) {
     mats.forEach(function(mat) {
@@ -60,24 +61,7 @@ Texture.prototype.load = function(names) {
       load[mat] = true;
     });
   });
-  each(Object.keys(load), self.pack.bind(self), function() {
-    self._atlasuv = self.atlas.uv();
-    self._atlaskey = Object.create(null);
-    self.atlas.index().forEach(function(key) {
-      self._atlaskey[key.name] = key;
-    });
-    self.texture.needsUpdate = true;
-    self.material.needsUpdate = true;
-    self.material.map.needsUpdate = true;
-    //window.open(self.canvas.toDataURL());
-    if (self._meshQueue.length > 0) {
-      self._meshQueue.forEach(function(queue) {
-        self.paint.apply(self, queue);
-      });
-      self._meshQueue = [];
-    }
-  });
-
+  each(Object.keys(load), self.pack.bind(self), self._afterLoading.bind(self));
   return materialSlice;
 };
 
@@ -100,7 +84,10 @@ Texture.prototype.pack = function(name, done) {
     };
     img.onerror = function() {
       console.error('Couldn\'t load URL [' + img.src + ']');
+      done();
     };
+  } else {
+    pack(name);
   }
   return self;
 };
@@ -134,11 +121,31 @@ Texture.prototype._expandName = function(name) {
   return name;
 };
 
+Texture.prototype._afterLoading = function() {
+  var self = this;
+  self.loading = false;
+  self._atlasuv = self.atlas.uv();
+  self._atlaskey = Object.create(null);
+  self.atlas.index().forEach(function(key) {
+    self._atlaskey[key.name] = key;
+  });
+  self.texture.needsUpdate = true;
+  self.material.needsUpdate = true;
+  self.material.map.needsUpdate = true;
+  //window.open(self.canvas.toDataURL());
+  if (self._meshQueue.length > 0) {
+    self._meshQueue.forEach(function(queue) {
+      self.paint.apply(self, queue);
+    });
+    self._meshQueue = [];
+  }
+};
+
 Texture.prototype.paint = function(mesh, materials) {
   var self = this;
 
   // if were loading put into queue
-  if (self._atlasuv === false) {
+  if (self.loading) {
     self._meshQueue.push(arguments);
     return false;
   }
@@ -192,25 +199,40 @@ Texture.prototype.sprite = function(name, w, h, cb) {
   if (typeof w === 'function') { cb = w; w = null; }
   if (typeof h === 'function') { cb = h; h = null; }
   w = w || 16; h = h || w;
+  self.loading = true;
   var img = new Image();
   img.src = self.texturePath + ext(name);
   img.onerror = cb;
   img.onload = function() {
-    var textures = [];
+    var canvases = [];
     for (var x = 0; x < img.width; x += w) {
       for (var y = 0; y < img.height; y += h) {
         var canvas = document.createElement('canvas');
         canvas.width = w; canvas.height = h;
-        var ctx = canvas.getContext('2d');
-        ctx.drawImage(img, x, y, w, h, 0, 0, w, h);
-        var tex = new self.THREE.Texture(canvas);
-        tex.name = name + '_' + x + '_' + y;
-        tex.needsUpdate = true;
-        textures.push(tex);
-        // TODO: automatically load onto the atlas
+        canvas.name = name + '_' + x + '_' + y;
+        canvas.getContext('2d').drawImage(img, x, y, w, h, 0, 0, w, h);
+        canvases.push(canvas);
       }
     }
-    cb(null, textures);
+    var textures = [];
+    each(canvases, function(canvas, next) {
+      var tex = new Image();
+      tex.name = canvas.name;
+      tex.src = canvas.toDataURL();
+      tex.onload = function() {
+        self.pack(tex, next);
+      };
+      tex.onerror = next;
+      textures.push([
+        tex.name, tex.name, tex.name,
+        tex.name, tex.name, tex.name
+      ]);
+    }, function() {
+      self._afterLoading();
+      delete canvases;
+      self.materials = self.materials.concat(textures);
+      cb(textures);
+    });
   };
   return self;
 };
