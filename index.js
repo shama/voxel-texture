@@ -1,4 +1,3 @@
-var transparent = require('opaque').transparent;
 var tic = require('tic')();
 var createAtlas = require('atlaspack');
 
@@ -6,7 +5,7 @@ function Texture(opts) {
   if (!(this instanceof Texture)) return new Texture(opts || {});
   this.game = opts.game;
   this.THREE = this.game.THREE;
-  this.materials = Object.create(null);
+  this.materials = [];
   this.texturePath = opts.texturePath || '/textures/';
 
   this.options = defaults(opts || {}, {
@@ -25,67 +24,59 @@ function Texture(opts) {
   this._animations = [];
 
   // create a canvas for the texture atlas
-  this._canvas = document.createElement('canvas');
-  this._canvas.width = opts.atlasWidth || 1024;
-  this._canvas.height = opts.atlasHeight || 1024;
+  this.canvas = document.createElement('canvas');
+  this.canvas.width = opts.atlasWidth || 512;
+  this.canvas.height = opts.atlasHeight || 512;
 
   // create core atlas and texture
-  this._atlas = createAtlas(this._canvas);
+  this.atlas = createAtlas(this.canvas);
   this._atlasuv = false;
-  this._texture = new this.THREE.Texture(this._canvas);
-  this.options.applyTextureParams.call(self, this._texture);
+  this._atlaskey = false;
+  this.texture = new this.THREE.Texture(this.canvas);
+  this.options.applyTextureParams(this.texture);
 
-  // create core material for easy application to meshes
+  // load a first material for easy application to meshes
   this.material = new this.options.materialType(this.options.materialParams);
-  this.material.map = this._texture;
+  this.material.map = this.texture;
   this.material.transparent = true;
+
+  // a place for meshes to wait while textures are loading
+  this._meshQueue = [];
 }
 module.exports = Texture;
 
-Texture.prototype.load = function(names, opts) {
+Texture.prototype.load = function(names) {
   var self = this;
-  opts = defaults(opts || {}, this.options);
-  if (!isArray(names)) names = [names];
+  if (!Array.isArray(names)) names = [names];
 
-  // create materials
-  var created = Object.create(null);
-  function createMaterial(name, type) {
-    if (created[name]) return created[name];
-    var mat = new opts.materialType(opts.materialParams);
-    mat.map = self._texture;
-    mat.name = name;
-    mat.transparent = true;
-    return created[name] = mat;
-  }
-
-  // expand and create materials object
-  var type = Object.keys(self.materials).length;
-  var materialSlice = Object.create(null);
-  names.map(self._expandName).forEach(function(group) {
-    var materials = [];
-    group.forEach(function(name) {
-      materials.push(createMaterial(name, type));
-    });
-    materialSlice[type] = self.materials[type] = materials;
-    type++;
-  });
+  var materialSlice = names.map(self._expandName);
+  self.materials = self.materials.concat(materialSlice);
 
   // load onto the texture atlas
   self._atlasuv = false;
   var load = Object.create(null);
-  Object.keys(materialSlice).forEach(function(k) {
-    materialSlice[k].forEach(function(mat) {
-      load[mat.name] = true;
+  materialSlice.forEach(function(mats) {
+    mats.forEach(function(mat) {
+      // todo: check if texture already exists
+      load[mat] = true;
     });
   });
   each(Object.keys(load), self.pack.bind(self), function() {
-    self._atlasuv = self._atlas.uv();
-    self._texture.needsUpdate = true;
-    self.material.needsUpdate = true;
-    //window.open(self._canvas.toDataURL());
-    Object.keys(self.game.voxels.meshes).forEach(function(pos) {
-      self.game.voxels.meshes[pos].geometry = self.paint(self.game.voxels.meshes[pos].geometry);
+    self._atlasuv = self.atlas.uv();
+    self._atlaskey = Object.create(null);
+    self.atlas.index().forEach(function(key) {
+      self._atlaskey[key.name] = key;
     });
+    self.texture.needsUpdate = true;
+    self.material.needsUpdate = true;
+    self.material.map.needsUpdate = true;
+    //window.open(self.canvas.toDataURL());
+    if (self._meshQueue.length > 0) {
+      self._meshQueue.forEach(function(queue) {
+        self.paint.apply(self, queue);
+      });
+      self._meshQueue = [];
+    }
   });
 
   return materialSlice;
@@ -94,9 +85,9 @@ Texture.prototype.load = function(names, opts) {
 Texture.prototype.pack = function(name, done) {
   var self = this;
   function pack(img) {
-    var node = self._atlas.pack(img);
+    var node = self.atlas.pack(img);
     if (node === false) {
-      self._atlas = self._atlas.expand(img);
+      self.atlas =  self.atlas.expand(img);
     }
     done();
   }
@@ -115,29 +106,13 @@ Texture.prototype.pack = function(name, done) {
   return self;
 };
 
-Texture.prototype.get = function(type) {
-  var self = this;
-  if (type) return self.materials[type];
-  return [].concat.apply([], Object.keys(self.materials).map(function(k) {
-    return self.materials[k];
-  }));
-};
-
-/*
+// TODO: Remove findIndex and just have find
 Texture.prototype.find = function(name) {
-  for (var i = 0; i < this.materials.length; i++) {
-    if (name === this.materials[i].name) return i;
-  }
-  return -1;
-};
-*/
-
-Texture.prototype.findIndex = function(name) {
   var self = this;
   var type = 0;
-  Object.keys(self.materials).forEach(function(i) {
-    self.materials[i].forEach(function(mat) {
-      if (mat.name === name) {
+  self.materials.forEach(function(mats, i) {
+    mats.forEach(function(mat) {
+      if (mat === name) {
         type = i;
         return false;
       }
@@ -149,7 +124,7 @@ Texture.prototype.findIndex = function(name) {
 
 Texture.prototype._expandName = function(name) {
   if (name.top) return [name.back, name.front, name.top, name.bottom, name.left, name.right];
-  if (!isArray(name)) name = [name];
+  if (!Array.isArray(name)) name = [name];
   // load the 0 texture to all
   if (name.length === 1) name = [name[0],name[0],name[0],name[0],name[0],name[0]];
   // 0 is top/bottom, 1 is sides
@@ -161,24 +136,34 @@ Texture.prototype._expandName = function(name) {
   return name;
 };
 
-Texture.prototype.paint = function(geom) {
+Texture.prototype.paint = function(mesh, materials) {
   var self = this;
-  if (self._atlasuv === false) return;
 
-  geom.faces.forEach(function(face, i) {
-    if (geom.faceVertexUvs[0].length < 1) return;
+  // if were loading put into queue
+  if (self._atlasuv === false) {
+    self._meshQueue.push(arguments);
+    return false;
+  }
 
-    var index = Math.floor(face.color.b*255 + face.color.g*255*255 + face.color.r*255*255*255);
-    var materials = self.materials[index - 1];
-    if (!materials) materials = self.materials[0];
+  var isVoxelMesh = (materials) ? false : true;
+  if (!isVoxelMesh) materials = self._expandName(materials);
+
+  mesh.geometry.faces.forEach(function(face, i) {
+    if (mesh.geometry.faceVertexUvs[0].length < 1) return;
+
+    if (isVoxelMesh) {
+      var index = Math.floor(face.color.b*255 + face.color.g*255*255 + face.color.r*255*255*255);
+      materials = self.materials[index - 1];
+      if (!materials) materials = self.materials[0];
+    }
 
     // BACK, FRONT, TOP, BOTTOM, LEFT, RIGHT
-    var name = materials[0].name;
-    if      (face.normal.z === 1)  name = materials[1].name;
-    else if (face.normal.y === 1)  name = materials[2].name;
-    else if (face.normal.y === -1) name = materials[3].name;
-    else if (face.normal.x === -1) name = materials[4].name;
-    else if (face.normal.x === 1)  name = materials[5].name;
+    var name = materials[0] || '';
+    if      (face.normal.z === 1)  name = materials[1] || '';
+    else if (face.normal.y === 1)  name = materials[2] || '';
+    else if (face.normal.y === -1) name = materials[3] || '';
+    else if (face.normal.x === -1) name = materials[4] || '';
+    else if (face.normal.x === 1)  name = materials[5] || '';
 
     var atlasuv = self._atlasuv[name];
     if (!atlasuv) return;
@@ -187,32 +172,23 @@ Texture.prototype.paint = function(geom) {
     // |    |
     // 3 -- 2
     // faces on these meshes are flipped vertically, so we map in reverse
-    if (face.normal.z === -1 || face.normal.x === 1) {
-      geom.faceVertexUvs[0][i][0].x =     atlasuv[2][0];
-      geom.faceVertexUvs[0][i][0].y = 1 - atlasuv[2][1];
-      geom.faceVertexUvs[0][i][1].x =     atlasuv[1][0];
-      geom.faceVertexUvs[0][i][1].y = 1 - atlasuv[1][1];
-      geom.faceVertexUvs[0][i][2].x =     atlasuv[0][0];
-      geom.faceVertexUvs[0][i][2].y = 1 - atlasuv[0][1];
-      geom.faceVertexUvs[0][i][3].x =     atlasuv[3][0];
-      geom.faceVertexUvs[0][i][3].y = 1 - atlasuv[3][1];
+    // TODO: tops need rotate
+    if (isVoxelMesh) {
+      if (face.normal.z === -1 || face.normal.x === 1) {
+        atlasuv = uvrot(atlasuv, 90);
+      }
+      atlasuv = uvinvert(atlasuv);
     } else {
-      geom.faceVertexUvs[0][i][0].x =     atlasuv[3][0];
-      geom.faceVertexUvs[0][i][0].y = 1 - atlasuv[3][1];
-      geom.faceVertexUvs[0][i][1].x =     atlasuv[2][0];
-      geom.faceVertexUvs[0][i][1].y = 1 - atlasuv[2][1];
-      geom.faceVertexUvs[0][i][2].x =     atlasuv[1][0];
-      geom.faceVertexUvs[0][i][2].y = 1 - atlasuv[1][1];
-      geom.faceVertexUvs[0][i][3].x =     atlasuv[0][0];
-      geom.faceVertexUvs[0][i][3].y = 1 - atlasuv[0][1];
+      atlasuv = uvrot(atlasuv, -90);
+    }
+    for (var j = 0; j < 4; j++) {
+      mesh.geometry.faceVertexUvs[0][i][j].set(atlasuv[j][0], 1 - atlasuv[j][1]);
     }
   });
 
-  geom.uvsNeedUpdate = true;
-  return geom;
+  mesh.geometry.uvsNeedUpdate = true;
 };
 
-// TODO: fix this to load onto the atlas
 Texture.prototype.sprite = function(name, w, h, cb) {
   var self = this;
   if (typeof w === 'function') { cb = w; w = null; }
@@ -233,6 +209,7 @@ Texture.prototype.sprite = function(name, w, h, cb) {
         tex.name = name + '_' + x + '_' + y;
         tex.needsUpdate = true;
         textures.push(tex);
+        // TODO: automatically load onto the atlas
       }
     }
     cb(null, textures);
@@ -267,32 +244,24 @@ Texture.prototype.tick = function(dt) {
   tic.tick(dt);
 };
 
-// TODO: Deprecate this
-Texture.prototype._isTransparent = function(material) {
-  if (!material.map) return;
-  if (!material.map.image) return;
-  if (material.map.image.nodeName.toLowerCase() === 'img') {
-    material.map.image.onload = function() {
-      if (transparent(this)) {
-        material.transparent = true;
-        material.needsUpdate = true;
-      }
-    };
-  } else {
-    if (transparent(material.map.image)) {
-      material.transparent = true;
-      material.needsUpdate = true;
-    }
+function uvrot(coords, deg) {
+  if (deg === 0) return coords;
+  var c = [];
+  var i = (4 - Math.ceil(deg / 90)) % 4;
+  for (var j = 0; j < 4; j++) {
+    c.push(coords[i]);
+    if (i === 3) i = 0; else i++;
   }
-};
+  return c;
+}
+
+function uvinvert(coords) {
+  var c = coords.slice(0);
+  return [c[3], c[2], c[1], c[0]];
+}
 
 function ext(name) {
   return (String(name).indexOf('.') !== -1) ? name : name + '.png';
-}
-
-// copied from https://github.com/joyent/node/blob/master/lib/util.js#L433
-function isArray(ar) {
-  return Array.isArray(ar) || (typeof ar === 'object' && Object.prototype.toString.call(ar) === '[object Array]');
 }
 
 function defaults(obj) {
