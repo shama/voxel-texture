@@ -45,9 +45,10 @@ function Texture(opts) {
 }
 module.exports = Texture;
 
-Texture.prototype.load = function(names) {
+Texture.prototype.load = function(names, done) {
   var self = this;
   if (!Array.isArray(names)) names = [names];
+  done = done || function() {};
   this.loading = true;
 
   var materialSlice = names.map(self._expandName);
@@ -61,7 +62,10 @@ Texture.prototype.load = function(names) {
       load[mat] = true;
     });
   });
-  each(Object.keys(load), self.pack.bind(self), self._afterLoading.bind(self));
+  each(Object.keys(load), self.pack.bind(self), function() {
+    self._afterLoading();
+    done(materialSlice);
+  });
   return materialSlice;
 };
 
@@ -237,26 +241,19 @@ Texture.prototype.sprite = function(name, w, h, cb) {
   return self;
 };
 
-// TODO: instead of names just pass materials to animate
-Texture.prototype.animate = function(names, delay) {
+Texture.prototype.animate = function(mesh, names, delay) {
   var self = this;
   delay = delay || 1000;
-  names = names.map(function(name) {
-    return (typeof name === 'string') ? self.find(name) : name;
-  }).filter(function(name) {
-    return (name !== -1);
-  });
-  if (names.length < 2) return false;
-
+  if (!Array.isArray(names) || names.length < 2) return false;
   var i = 0;
-  var mat = self.materials[names[0]].clone();
+  var mat = new this.options.materialType(this.options.materialParams);
+  mat.map = this.texture;
+  mat.transparent = true;
+  mat.needsUpdate = true;
   tic.interval(function() {
-    mat.map = self.materials[names[i % names.length]].map;
-    mat.needsUpdate = true;
+    self.paint(mesh, names[i % names.length]);
     i++;
   }, delay);
-
-  self.materials.push(mat);
   return mat;
 };
 
