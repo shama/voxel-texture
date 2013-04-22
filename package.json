@@ -1,7 +1,7 @@
 {
   "name": "voxel-texture",
   "description": "A texture helper for voxeljs",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "homepage": "https://github.com/shama/voxel-texture",
   "author": {
     "name": "Kyle Robinson Young",
@@ -30,7 +30,7 @@
   },
   "dependencies": {
     "tic": "~0.2.0",
-    "atlaspack": "~0.2.1"
+    "atlaspack": "~0.2.3"
   },
   "devDependencies": {
     "voxel-engine": "~0.16.3",

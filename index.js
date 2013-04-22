@@ -28,6 +28,7 @@ function Texture(opts) {
 
   // create core atlas and texture
   this.atlas = createAtlas(this.canvas);
+  this.atlas.tilepad = true;
   this._atlasuv = false;
   this._atlaskey = false;
   this.texture = new this.THREE.Texture(this.canvas);
@@ -71,7 +72,8 @@ Texture.prototype.pack = function(name, done) {
   function pack(img) {
     var node = self.atlas.pack(img);
     if (node === false) {
-      self.atlas =  self.atlas.expand(img);
+      self.atlas = self.atlas.expand(img);
+      self.atlas.tilepad = true;
     }
     done();
   }
