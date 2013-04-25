@@ -162,6 +162,7 @@ npm install voxel-texture
 ```
 
 ## release history
+* 0.5.3 - Force texture to dimensions that are power of 2 for mipmaps.
 * 0.5.2 - Use atlaspack tilepad to avoid mipmap texture bleed.
 * 0.5.1 - Fix CORS support.
 * 0.5.0 - No longer a materials API. Loads textures onto an atlas and sets UV mappings.

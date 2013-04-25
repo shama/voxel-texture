@@ -126,9 +126,9 @@ Texture.prototype._expandName = function(name) {
 
 Texture.prototype._afterLoading = function() {
   var self = this;
-  setTimeout(function() {
+  function alldone() {
     self.loading--;
-    self._atlasuv = self.atlas.uv();
+    self._atlasuv = self.atlas.uv(self.canvas.width, self.canvas.height);
     self._atlaskey = Object.create(null);
     self.atlas.index().forEach(function(key) {
       self._atlaskey[key.name] = key;
@@ -142,7 +142,32 @@ Texture.prototype._afterLoading = function() {
         delete self._meshQueue[i];
       });
     }
-  }, 100);
+  }
+  self._powerof2(function() {
+    setTimeout(alldone, 100);
+  });
+};
+
+// Ensure the texture stays at a power of 2 for mipmaps
+// this is cheating :D
+Texture.prototype._powerof2 = function(done) {
+  var w = this.canvas.width;
+  var h = this.canvas.height;
+  function pow2(x) {
+    x--;
+    x |= x >> 1;
+    x |= x >> 2;
+    x |= x >> 4;
+    x |= x >> 8;
+    x |= x >> 16;
+    x++;
+    return x;
+  }
+  if (h > w) w = h;
+  var old = this.canvas.getContext('2d').getImageData(0, 0, this.canvas.width, this.canvas.height);
+  this.canvas.width = this.canvas.height = pow2(w);
+  this.canvas.getContext('2d').putImageData(old, 0, 0);
+  done();
 };
 
 Texture.prototype.paint = function(mesh, materials) {
