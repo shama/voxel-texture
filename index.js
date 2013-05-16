@@ -111,6 +111,7 @@ Texture.prototype.find = function(name) {
 };
 
 Texture.prototype._expandName = function(name) {
+  if (name === null) return Array(6);
   if (name.top) return [name.back, name.front, name.top, name.bottom, name.left, name.right];
   if (!Array.isArray(name)) name = [name];
   // load the 0 texture to all
