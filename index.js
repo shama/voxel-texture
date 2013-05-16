@@ -3,6 +3,7 @@ var createAtlas = require('atlaspack');
 
 function Texture(opts) {
   if (!(this instanceof Texture)) return new Texture(opts || {});
+  var self = this;
   this.game = opts.game;
   this.THREE = this.game.THREE;
   this.materials = [];
@@ -16,9 +17,9 @@ function Texture(opts) {
     }),
     materialType: this.THREE.MeshLambertMaterial,
     applyTextureParams: function(map) {
-      map.magFilter = this.THREE.NearestFilter;
-      map.minFilter = this.THREE.LinearMipMapLinearFilter;
-    }.bind(this)
+      map.magFilter = self.THREE.NearestFilter;
+      map.minFilter = self.THREE.LinearMipMapLinearFilter;
+    }
   });
 
   // create a canvas for the texture atlas
