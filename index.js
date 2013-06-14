@@ -19,7 +19,16 @@ function Texture(opts) {
   this.options = defaults(opts || {}, {
     crossOrigin: 'Anonymous',
     materialParams: defaults(opts.materialParams || {}, {
-      ambient: 0xbbbbbb
+      ambient: 0xbbbbbb,
+      transparent: false,
+      side: this.THREE.DoubleSide,
+    }),
+    materialTransparentParams: defaults(opts.materialTransparentParams || {}, {
+      ambient: 0xbbbbbb,
+      transparent: true,
+      side: this.THREE.DoubleSide,
+      //depthWrite: false,
+      //depthTest: false
     }),
     materialType: this.THREE.MeshLambertMaterial,
     applyTextureParams: function(map) {
@@ -52,11 +61,8 @@ function Texture(opts) {
   } else {
     var opaque = new this.options.materialType(this.options.materialParams);
     opaque.map = this.texture;
-    opaque.transparent = false;
-    var transparent = new this.options.materialType(this.options.materialParams);
+    var transparent = new this.options.materialType(this.options.materialTransparentParams);
     transparent.map = this.texture;
-    transparent.transparent = true;
-    transparent.sided = this.THREE.DoubleSide;
     this.material = new this.THREE.MeshFaceMaterial([
       opaque,
       transparent
