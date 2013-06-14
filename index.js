@@ -11,6 +11,7 @@ function Texture(opts) {
   this.transparents = [];
   this.texturePath = opts.texturePath || '/textures/';
   this.loading = 0;
+  this.ao = require('voxel-fakeao')(this.game);
 
   var useFlatColors = opts.materialFlatColor === true;
   delete opts.materialFlatColor;
@@ -233,7 +234,7 @@ Texture.prototype.paint = function(mesh, materials) {
 
     // if just a simple color
     if (name.slice(0, 1) === '#') {
-      self.setColor(mesh.geometry.faces[i], name);
+      self.ao(face, name);
       return;
     }
 
@@ -327,28 +328,6 @@ Texture.prototype.tick = function(dt) {
   tic.tick(dt);
 };
 
-Texture.prototype.setColor = function(face, color) {
-  var rgb = hex2rgb(color);
-  face.color.setRGB(rgb[0], rgb[1], rgb[2]);
-  var ld = this._lightDark(color);
-
-  // TODO: AO should be figured better than this
-  if (face.normal.y === 1)       face.vertexColors = [ld[0], ld[0], ld[0], ld[0]];
-  else if (face.normal.y === -1) face.vertexColors = [ld[1], ld[1], ld[1], ld[1]];
-  else if (face.normal.x === 1)  face.vertexColors = [ld[1], ld[0], ld[0], ld[1]];
-  else if (face.normal.x === -1) face.vertexColors = [ld[1], ld[1], ld[0], ld[0]];
-  else if (face.normal.z === 1)  face.vertexColors = [ld[1], ld[1], ld[0], ld[0]];
-  else                           face.vertexColors = [ld[1], ld[0], ld[0], ld[1]];
-};
-
-Texture.prototype._lightDark = memoize(function(color) {
-  var light = new this.THREE.Color(color);
-  var hsl = light.getHSL();
-  var dark = light.clone();
-  dark.setHSL(hsl.h, hsl.s, hsl.l - 0.1);
-  return [light, dark];
-});
-
 function uvrot(coords, deg) {
   if (deg === 0) return coords;
   var c = [];
@@ -384,20 +363,4 @@ function each(arr, it, done) {
       if (count >= arr.length) done();
     });
   });
-}
-
-function hex2rgb(hex) {
-  if (hex[0] === '#') hex = hex.substr(1);
-  return [parseInt(hex.substr(0,2), 16)/255, parseInt(hex.substr(2,2), 16)/255, parseInt(hex.substr(4,2), 16)/255];
-}
-
-function memoize(func) {
-  function memoized() {
-    var cache = memoized.cache, key = arguments[0];
-    return hasOwnProperty.call(cache, key)
-      ? cache[key]
-      : (cache[key] = func.apply(this, arguments));
-  }
-  memoized.cache = {};
-  return memoized;
 }
