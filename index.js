@@ -1,5 +1,6 @@
 var tic = require('tic')();
 var createAtlas = require('atlaspack');
+var isTransparent = require('opaque').transparent;
 
 function Texture(opts) {
   if (!(this instanceof Texture)) return new Texture(opts || {});
@@ -7,6 +8,7 @@ function Texture(opts) {
   this.game = opts.game; delete opts.game;
   this.THREE = this.game.THREE;
   this.materials = [];
+  this.transparents = [];
   this.texturePath = opts.texturePath || '/textures/';
   this.loading = 0;
 
@@ -29,6 +31,9 @@ function Texture(opts) {
   this.canvas = (typeof document !== 'undefined') ? document.createElement('canvas') : {};
   this.canvas.width = opts.atlasWidth || 512;
   this.canvas.height = opts.atlasHeight || 512;
+  var ctx = this.canvas.getContext('2d');
+  ctx.fillStyle = 'black';
+  ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
   // create core atlas and texture
   this.atlas = createAtlas(this.canvas);
@@ -44,10 +49,17 @@ function Texture(opts) {
       vertexColors: this.THREE.VertexColors
     });
   } else {
-    // load a first material for easy application to meshes
-    this.material = new this.options.materialType(this.options.materialParams);
-    this.material.map = this.texture;
-    this.material.transparent = true;
+    var opaque = new this.options.materialType(this.options.materialParams);
+    opaque.map = this.texture;
+    opaque.transparent = false;
+    var transparent = new this.options.materialType(this.options.materialParams);
+    transparent.map = this.texture;
+    transparent.transparent = true;
+    transparent.sided = this.THREE.DoubleSide;
+    this.material = new this.THREE.MeshFaceMaterial([
+      opaque,
+      transparent
+    ]);
   }
 
   // a place for meshes to wait while textures are loading
@@ -99,6 +111,9 @@ Texture.prototype.pack = function(name, done) {
     img.crossOrigin = self.options.crossOrigin;
     img.src = self.texturePath + ext(name);
     img.onload = function() {
+      if (isTransparent(img)) {
+        self.transparents.push(name);
+      }
       pack(img);
     };
     img.onerror = function() {
@@ -224,6 +239,9 @@ Texture.prototype.paint = function(mesh, materials) {
 
     var atlasuv = self._atlasuv[name];
     if (!atlasuv) return;
+
+    // If a transparent texture use transparent material
+    face.materialIndex = (self.transparents.indexOf(name) !== -1) ? 1 : 0;
 
     // 0 -- 1
     // |    |
