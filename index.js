@@ -263,7 +263,7 @@ Texture.prototype.paint = function(mesh, materials) {
     } else {
       atlasuv = uvrot(atlasuv, -90);
     }
-    for (var j = 0; j < 4; j++) {
+    for (var j = 0; j < mesh.geometry.faceVertexUvs[0][i].length; j++) {
       mesh.geometry.faceVertexUvs[0][i][j].set(atlasuv[j][0], 1 - atlasuv[j][1]);
     }
   });
