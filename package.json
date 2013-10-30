@@ -1,7 +1,7 @@
 {
   "name": "voxel-texture",
   "description": "A texture helper for voxeljs",
-  "version": "0.5.6",
+  "version": "0.5.7",
   "homepage": "https://github.com/shama/voxel-texture",
   "author": {
     "name": "Kyle Robinson Young",
@@ -29,8 +29,9 @@
     "gh-pages": "cp -R ./example/* ./ && browserify world.js -o world.js"
   },
   "dependencies": {
-    "tic": "~0.2.0",
-    "atlaspack": "~0.2.4"
+    "tic": "~0.2.1",
+    "atlaspack": "~0.2.5",
+    "voxel-fakeao": "~0.1.1"
   },
   "devDependencies": {
     "voxel-engine": "~0.17.1",
