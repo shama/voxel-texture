@@ -85,6 +85,8 @@ function Texture(game, opts) {
 }
 
 Texture.prototype.load = function(names, done) {
+  if (!names || names.length === 0) return;
+
   var self = this;
   if (!Array.isArray(names)) names = [names];
   done = done || function() {};
@@ -416,6 +418,8 @@ function TextureSimple(game, opts) {
 }
 
 TextureSimple.prototype.load = function(names, opts) {
+  if (!names || names.length === 0) return;
+
   var self = this;
   opts = self._options(opts);
   if (!Array.isArray(names)) names = [names];
