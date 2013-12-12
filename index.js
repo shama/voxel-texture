@@ -113,7 +113,7 @@ Texture.prototype.load = function(names, done) {
 };
 
 Texture.prototype.getMesh = function() {
-  return this.materials.material;
+  return this.material;
 }
 
 Texture.prototype.pack = function(name, done) {
