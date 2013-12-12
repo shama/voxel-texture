@@ -13,11 +13,20 @@ module.exports = function(game, opts) {
     return new TextureSimple(game, opts);
 };
 
+function reconfigure(old) {
+  var ret = module.exports(old.game, old.opts);
+  ret.load(old.names);
+
+  return ret;
+}
+
 function Texture(game, opts) {
   if (!(this instanceof Texture)) return new Texture(game, opts || {});
   var self = this;
   this.game = game;
+  this.opts = opts;
   this.THREE = this.game.THREE;
+  this.names = [];
   this.materials = [];
   this.transparents = [];
   this.texturePath = opts.texturePath || '/textures/';
@@ -84,8 +93,13 @@ function Texture(game, opts) {
   this._meshQueue = [];
 }
 
+Texture.prototype.reconfigure = function() {
+  return reconfigure(this);
+};
+
 Texture.prototype.load = function(names, done) {
   if (!names || names.length === 0) return;
+  this.names = this.names.concat(names); // save for reconfiguration
 
   var self = this;
   if (!Array.isArray(names)) names = [names];
@@ -401,8 +415,10 @@ function TextureSimple(game, opts) {
   if (!(this instanceof TextureSimple)) return new TextureSimple(game, opts || {});
   var self = this;
   this.game = game;
+  this.opts = opts;
   this.THREE              = this.game.THREE || opts.THREE || require('three');
   this.materials          = [];
+  this.names              = [];
   this.texturePath        = opts.texturePath    || '/textures/';
   this.materialParams     = opts.materialParams || {};
   this.materialType       = opts.materialType   || this.THREE.MeshLambertMaterial;
@@ -417,8 +433,13 @@ function TextureSimple(game, opts) {
   }
 }
 
+TextureSimple.prototype.reconfigure = function() {
+  return reconfigure(this);
+};
+
 TextureSimple.prototype.load = function(names, opts) {
   if (!names || names.length === 0) return;
+  this.names = this.names.concat(names); // save for reconfiguration
 
   var self = this;
   opts = self._options(opts);
