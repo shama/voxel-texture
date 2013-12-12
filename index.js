@@ -112,6 +112,10 @@ Texture.prototype.load = function(names, done) {
   }
 };
 
+Texture.prototype.getMesh = function() {
+  return this.materials.material;
+}
+
 Texture.prototype.pack = function(name, done) {
   var self = this;
   function pack(img) {
@@ -157,6 +161,8 @@ Texture.prototype.find = function(name) {
   });
   return type;
 };
+
+Texture.prototype.findIndex = Texture.prototype.find; // compatibility
 
 Texture.prototype._expandName = function(name) {
   if (name === null) return Array(6);
@@ -217,6 +223,10 @@ Texture.prototype._powerof2 = function(done) {
   this.canvas.width = this.canvas.height = pow2(w);
   this.canvas.getContext('2d').putImageData(old, 0, 0);
   done();
+};
+
+Texture.prototype.paintMesh = function(mesh) {
+  this.paint(mesh);
 };
 
 Texture.prototype.paint = function(mesh, materials) {
@@ -434,6 +444,10 @@ TextureSimple.prototype.load = function(names, opts) {
   }));
 };
 
+TextureSimple.prototype.getMesh = function() {
+  return new this.THREE.MeshFaceMaterial(this.get());
+};
+
 TextureSimple.prototype.get = function(index) {
   if (index == null) return this.materials;
   if (typeof index === 'number') {
@@ -482,6 +496,10 @@ TextureSimple.prototype._options = function(opts) {
   opts.materialParams = defaults(opts.materialParams || {}, this._materialDefaults, this.materialParams);
   opts.applyTextureParams = opts.applyTextureParams || this.applyTextureParams;
   return opts;
+};
+
+TextureSimple.prototype.paintMesh = function(mesh) {
+  this.paint(mesh.geometry);
 };
 
 TextureSimple.prototype.paint = function(geom) {
