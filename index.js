@@ -3,8 +3,8 @@ var createAtlas = require('atlaspack');
 var isTransparent = require('opaque').transparent;
 
 module.exports = function(game, opts) {
-  if (opts === undefined) opts = game;
-
+  opts = opts || {};
+    
   opts.useAtlas = (opts.useAtlas === undefined) ? true : opts.useAtlas;
 
   if (opts.useAtlas)
@@ -13,10 +13,10 @@ module.exports = function(game, opts) {
     return new TextureSimple(game, opts);
 };
 
-function Texture(opts) {
-  if (!(this instanceof Texture)) return new Texture(opts || {});
+function Texture(game, opts) {
+  if (!(this instanceof Texture)) return new Texture(game, opts || {});
   var self = this;
-  this.game = opts.game; delete opts.game;
+  this.game = game;
   this.THREE = this.game.THREE;
   this.materials = [];
   this.transparents = [];
@@ -395,10 +395,11 @@ function each(arr, it, done) {
 // Support for textures without atlas ("simple" textures), as in 0.4.0
 ////
 
-function TextureSimple(opts) {
+function TextureSimple(game, opts) {
+  if (!(this instanceof TextureSimple)) return new TextureSimple(game, opts || {});
   var self = this;
-  if (!(this instanceof TextureSimple)) return new TextureSimple(opts || {});
-  this.THREE              = opts.THREE          || require('three');
+  this.game = game;
+  this.THREE              = this.game.THREE || opts.THREE || require('three');
   this.materials          = [];
   this.texturePath        = opts.texturePath    || '/textures/';
   this.materialParams     = opts.materialParams || {};
@@ -413,6 +414,7 @@ function TextureSimple(opts) {
     map.wrapS     = self.THREE.RepeatWrapping;
   }
 }
+
 TextureSimple.prototype.load = function(names, opts) {
   var self = this;
   opts = self._options(opts);
