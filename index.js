@@ -395,8 +395,6 @@ function each(arr, it, done) {
 // Support for textures without atlas ("simple" textures), as in 0.4.0
 ////
 
-var transparent = require('opaque').transparent;
-
 function TextureSimple(opts) {
   var self = this;
   if (!(this instanceof TextureSimple)) return new TextureSimple(opts || {});
@@ -418,7 +416,7 @@ function TextureSimple(opts) {
 TextureSimple.prototype.load = function(names, opts) {
   var self = this;
   opts = self._options(opts);
-  if (!isArray(names)) names = [names];
+  if (!Array.isArray(names)) names = [names];
   if (!hasSubArray(names)) names = [names];
   return [].concat.apply([], names.map(function(name) {
     name = self._expandName(name);
@@ -478,7 +476,7 @@ TextureSimple.prototype.findIndex = function(name) {
 
 TextureSimple.prototype._expandName = function(name) {
   if (name.top) return [name.back, name.front, name.top, name.bottom, name.left, name.right];
-  if (!isArray(name)) name = [name];
+  if (!Array.isArray(name)) name = [name];
   // load the 0 texture to all
   if (name.length === 1) name = [name[0],name[0],name[0],name[0],name[0],name[0]];
   // 0 is top/bottom, 1 is sides
@@ -583,37 +581,22 @@ TextureSimple.prototype._isTransparent = function(material) {
   if (!material.map.image) return;
   if (material.map.image.nodeName.toLowerCase() === 'img') {
     material.map.image.onload = function() {
-      if (transparent(this)) {
+      if (isTransparent(this)) {
         material.transparent = true;
         material.needsUpdate = true;
       }
     };
   } else {
-    if (transparent(material.map.image)) {
+    if (isTransparent(material.map.image)) {
       material.transparent = true;
       material.needsUpdate = true;
     }
   }
 };
 
-function ext(name) {
-  return (String(name).indexOf('.') !== -1) ? name : name + '.png';
-}
-
-// copied from https://github.com/joyent/node/blob/master/lib/util.js#L433
-function isArray(ar) {
-  return Array.isArray(ar) || (typeof ar === 'object' && Object.prototype.toString.call(ar) === '[object Array]');
-}
-
 function hasSubArray(ar) {
   var has = false;
-  ar.forEach(function(a) { if (isArray(a)) { has = true; return false; } });
+  ar.forEach(function(a) { if (Array.isArray(a)) { has = true; return false; } });
   return has;
 }
 
-function defaults(obj) {
-  [].slice.call(arguments, 1).forEach(function(from) {
-    if (from) for (var k in from) if (obj[k] == null) obj[k] = from[k];
-  });
-  return obj;
-}
