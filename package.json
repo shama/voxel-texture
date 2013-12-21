@@ -29,6 +29,7 @@
     "gh-pages": "cp -R ./example/* ./ && browserify world.js -o world.js"
   },
   "dependencies": {
+    "opaque": "0.0.1",
     "tic": "~0.2.1",
     "atlaspack": "~0.2.5",
     "voxel-fakeao": "~0.1.1"
