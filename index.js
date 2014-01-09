@@ -36,26 +36,26 @@ function Texture(game, opts) {
   var useFlatColors = opts.materialFlatColor === true;
   delete opts.materialFlatColor;
 
-  this.options = defaults(opts || {}, {
+  this.options = {
     crossOrigin: 'Anonymous',
-    materialParams: defaults(opts.materialParams || {}, {
+    materialParams: {
       ambient: 0xbbbbbb,
       transparent: false,
-      side: this.THREE.DoubleSide,
-    }),
-    materialTransparentParams: defaults(opts.materialTransparentParams || {}, {
+      side: this.THREE.DoubleSide
+    },
+    materialTransparentParams: {
       ambient: 0xbbbbbb,
       transparent: true,
       side: this.THREE.DoubleSide,
       //depthWrite: false,
       //depthTest: false
-    }),
+    },
     materialType: this.THREE.MeshLambertMaterial,
     applyTextureParams: function(map) {
       map.magFilter = self.THREE.NearestFilter;
       map.minFilter = self.THREE.LinearMipMapLinearFilter;
     }
-  });
+  };
 
   // create a canvas for the texture atlas
   this.canvas = (typeof document !== 'undefined') ? document.createElement('canvas') : {};
@@ -388,13 +388,6 @@ function uvinvert(coords) {
 
 function ext(name) {
   return (String(name).indexOf('.') !== -1) ? name : name + '.png';
-}
-
-function defaults(obj) {
-  [].slice.call(arguments, 1).forEach(function(from) {
-    if (from) for (var k in from) if (obj[k] == null) obj[k] = from[k];
-  });
-  return obj;
 }
 
 function each(arr, it, done) {
