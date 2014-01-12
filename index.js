@@ -1,6 +1,7 @@
 var tic = require('tic')();
 var createAtlas = require('atlaspack');
 var isTransparent = require('opaque').transparent;
+var touchup = require('touchup');
 
 module.exports = function(game, opts) {
   opts = opts || {};
@@ -36,6 +37,8 @@ function Texture(game, opts) {
   var useFlatColors = opts.materialFlatColor === true;
   delete opts.materialFlatColor;
 
+  this.useFourTap = opts.useFourTap === undefined ? true : opts.useFourTap;
+
   // create a canvas for the texture atlas
   this.canvas = (typeof document !== 'undefined') ? document.createElement('canvas') : {};
   this.canvas.width = opts.atlasWidth || 512;
@@ -46,7 +49,7 @@ function Texture(game, opts) {
 
   // create core atlas and texture
   this.atlas = createAtlas(this.canvas);
-  this.atlas.tilepad = true;
+  this.atlas.tilepad = !this.useFourTap; // for 4-tap, not using tilepad since it repeats only half on each side (.5 .5 .5 / .5 1 .5 / .5 .5 .5, not 1 1 / 1 1)
   this._atlasuv = false;
   this._atlaskey = false;
   this.texture = new this.THREE.Texture(this.canvas);
@@ -61,7 +64,7 @@ function Texture(game, opts) {
       uniforms: {
         tileMap: {type: 't', value: this.texture},
         tileSize: {type: 'f', value: 16.0},  // size of one individual texture tile
-        tileSizeUV: {type: 'f', value: 16.0 / this.canvas.width} // size of tile in UV units (0.0-1.0)
+        tileSizeUV: {type: 'f', value: 16.0 / this.canvas.width}, // size of tile in UV units (0.0-1.0)
       },
       vertexShader: [
 'varying vec3 vNormal;',
@@ -85,13 +88,45 @@ function Texture(game, opts) {
 'varying vec3 vNormal;',
 'varying vec3 vPosition;',
 'varying vec2 vUv;',
+
+// based on @mikolalysenko's code at:
+// http://0fps.wordpress.com/2013/07/09/texture-atlases-wrapping-and-mip-mapping/
+// https://github.com/mikolalysenko/ao-shader/blob/master/lib/ao.fsh
+// https://github.com/mikolalysenko/ao-shader/blob/master/lib/ao.vsh
+
+'vec4 fourTapSample(vec2 tileOffset, //Tile offset in the atlas ',
+'                  vec2 tileUV, //Tile coordinate (as above)',
+'                  float tileSize, //Size of a tile in atlas',
+'                  sampler2D atlas) {',
+'  //Initialize accumulators',
+'  vec4 color = vec4(0.0, 0.0, 0.0, 0.0);',
+'  float totalWeight = 0.0;',
+'',
+'  for(int dx=0; dx<2; ++dx)',
+'  for(int dy=0; dy<2; ++dy) {',
+'    //Compute coordinate in 2x2 tile patch',
+'    vec2 tileCoord = 2.0 * fract(0.5 * (tileUV + vec2(dx,dy)));',
+'',
+'    //Weight sample based on distance to center',
+'    float w = pow(1.0 - max(abs(tileCoord.x-1.0), abs(tileCoord.y-1.0)), 16.0);',
+'',
+'    //Compute atlas coord',
+'    vec2 atlasUV = tileOffset + tileSize * tileCoord;',
+'',
+'    //Sample and accumulate',
+'    color += w * texture2D(atlas, atlasUV);',
+'    totalWeight += w;',
+'  }',
+'',
+'  //Return weighted color',
+'  return color / totalWeight;',
+'}',
 '',
 'void main() {',
 // use world coordinates to repeat [0..1] offsets, within _each_ tile face
 '   vec2 tileUV = vec2(dot(vNormal.zxy, vPosition),',
 '                      dot(vNormal.yzx, vPosition));',
 
-'   tileUV = fract(tileUV);',
 '',
 '    // back: flip 180',
 '    if (vNormal.z < 0.0) tileUV.t = 1.0 - tileUV.t;',
@@ -115,13 +150,18 @@ function Texture(game, opts) {
 // material type (_not_ interpolated; same for all vertices).
 '   vec2 tileOffset = vUv;',
 
-// index tile at offset into texture atlas, see references:
-// http://0fps.wordpress.com/2013/07/09/texture-atlases-wrapping-and-mip-mapping/
-// https://github.com/mikolalysenko/ao-shader/blob/master/lib/ao.fsh
-// https://github.com/mikolalysenko/ao-shader/blob/master/lib/ao.vsh
-'   vec2 texCoord = tileOffset + tileSizeUV * tileUV;',
 '',
-'   gl_FragColor = texture2D(tileMap, texCoord);',
+(this.useFourTap // TODO: use glsl conditional compilation?
+  ? [
+    '     gl_FragColor = fourTapSample(tileOffset, //Tile offset in the atlas ',
+    '                  tileUV, //Tile coordinate (as above)',
+    '                  tileSizeUV, //Size of a tile in atlas',
+    '                  tileMap);'].join('\n') 
+  : [
+    // index tile at offset into texture atlas
+    'vec2 texCoord = tileOffset + tileSizeUV * fract(tileUV);',
+    'gl_FragColor = texture2D(tileMap, texCoord);'].join('\n')),
+'',
 '   if (gl_FragColor.a < 0.001) discard; // transparency',
 '}'
 ].join('\n')
@@ -219,7 +259,17 @@ Texture.prototype.pack = function(name, done) {
       if (isTransparent(img)) {
         self.transparents.push(name);
       }
-      pack(img);
+      if (self.useFourTap) {
+        // repeat 2x2 for mipmap padding 4-tap trick
+        var img2 = new Image();
+        img2.id = name;
+        img2.src = touchup.repeat(img, 2, 2);
+        img2.onload = function() {
+          pack(img2);
+        }
+      } else {
+        pack(img);
+      }
     };
     img.onerror = function() {
       console.error('Couldn\'t load URL [' + img.src + ']');
