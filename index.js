@@ -36,27 +36,6 @@ function Texture(game, opts) {
   var useFlatColors = opts.materialFlatColor === true;
   delete opts.materialFlatColor;
 
-  this.options = {
-    crossOrigin: 'Anonymous',
-    materialParams: {
-      ambient: 0xbbbbbb,
-      transparent: false,
-      side: this.THREE.DoubleSide
-    },
-    materialTransparentParams: {
-      ambient: 0xbbbbbb,
-      transparent: true,
-      side: this.THREE.DoubleSide,
-      //depthWrite: false,
-      //depthTest: false
-    },
-    materialType: this.THREE.MeshLambertMaterial,
-    applyTextureParams: function(map) {
-      map.magFilter = self.THREE.NearestFilter;
-      map.minFilter = self.THREE.LinearMipMapLinearFilter;
-    }
-  };
-
   // create a canvas for the texture atlas
   this.canvas = (typeof document !== 'undefined') ? document.createElement('canvas') : {};
   this.canvas.width = opts.atlasWidth || 512;
@@ -71,6 +50,96 @@ function Texture(game, opts) {
   this._atlasuv = false;
   this._atlaskey = false;
   this.texture = new this.THREE.Texture(this.canvas);
+
+  this.options = {
+    crossOrigin: 'Anonymous',
+    materialParams: {
+      ambient: 0xbbbbbb,
+      transparent: false,
+      side: this.THREE.DoubleSide,
+
+      uniforms: {
+        tileMap: {type: 't', value: this.texture},
+        tileSize: {type: 'f', value: 16.0},  // size of one individual texture tile
+        tileSizeUV: {type: 'f', value: 16.0 / this.canvas.width} // size of tile in UV units (0.0-1.0)
+      },
+      vertexShader: [
+'varying vec3 vNormal;',
+'varying vec3 vPosition;',
+'varying vec2 vUv;', // to set from three.js's "uv" attribute passed in
+'',
+'void main() {',
+'   vNormal = normal;',
+'   vPosition = position;',
+'   vUv = uv;',
+'',
+'   gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);',
+'}'
+        ].join('\n'),
+      fragmentShader: [
+'uniform float tileSize;',
+'uniform sampler2D tileMap;',
+'uniform float tileSizeUV;',
+'uniform vec2 tileOffsets[7];',
+'',
+'varying vec3 vNormal;',
+'varying vec3 vPosition;',
+'varying vec2 vUv;',
+'',
+'void main() {',
+// use world coordinates to repeat [0..1] offsets, within _each_ tile face
+'   vec2 tileUV = vec2(dot(vNormal.zxy, vPosition),',
+'                      dot(vNormal.yzx, vPosition));',
+
+'   tileUV = fract(tileUV);',
+'',
+'    // back: flip 180',
+'    if (vNormal.z < 0.0) tileUV.t = 1.0 - tileUV.t;',
+'',
+'    // left: rotate 90 ccw',
+'    if (vNormal.x < 0.0) {',
+'        float r = tileUV.s;',
+'        tileUV.s = tileUV.t;',
+'        tileUV.t = 1.0 - r;',
+'    }',
+'',
+'    // right: rotate 90 cw',
+'    if (vNormal.x > 0.0) {',
+'        float r = tileUV.s;',
+'        tileUV.s = tileUV.t;',
+'        tileUV.t = r;',
+'    }', // TODO: might technically need to mirror-image other sides? (can't really tell)
+'',
+
+// three.js' UV coordinate is passed as tileOffset, starting point determining the texture
+// material type (_not_ interpolated; same for all vertices).
+'   vec2 tileOffset = vUv;',
+
+// index tile at offset into texture atlas, see references:
+// http://0fps.wordpress.com/2013/07/09/texture-atlases-wrapping-and-mip-mapping/
+// https://github.com/mikolalysenko/ao-shader/blob/master/lib/ao.fsh
+// https://github.com/mikolalysenko/ao-shader/blob/master/lib/ao.vsh
+'   vec2 texCoord = tileOffset + tileSizeUV * tileUV;',
+'',
+'   gl_FragColor = texture2D(tileMap, texCoord);',
+'}'
+].join('\n')
+    },
+    materialTransparentParams: {
+      ambient: 0xbbbbbb,
+      transparent: true,
+      side: this.THREE.DoubleSide,
+      //depthWrite: false,
+      //depthTest: false
+      // TODO
+    },
+    materialType: this.THREE.ShaderMaterial,
+    applyTextureParams: function(map) {
+      map.magFilter = self.THREE.NearestFilter;
+      map.minFilter = self.THREE.LinearMipMapLinearFilter;
+    }
+  };
+
   this.options.applyTextureParams(this.texture);
 
   if (useFlatColors) {
@@ -80,9 +149,7 @@ function Texture(game, opts) {
     });
   } else {
     var opaque = new this.options.materialType(this.options.materialParams);
-    opaque.map = this.texture;
     var transparent = new this.options.materialType(this.options.materialTransparentParams);
-    transparent.map = this.texture;
     this.material = new this.THREE.MeshFaceMaterial([
       opaque,
       transparent
@@ -290,17 +357,19 @@ Texture.prototype.paint = function(mesh, materials) {
     // |    |
     // 3 -- 2
     // faces on these meshes are flipped vertically, so we map in reverse
-    // TODO: tops need rotate
     if (isVoxelMesh) {
-      if (face.normal.z === -1 || face.normal.x === 1) {
-        atlasuv = uvrot(atlasuv, 90);
-      }
       atlasuv = uvinvert(atlasuv);
     } else {
       atlasuv = uvrot(atlasuv, -90);
     }
+
+    // range of UV coordinates for this texture (see above diagram)
+    var topUV = atlasuv[0], rightUV = atlasuv[1], bottomUV = atlasuv[2], leftUV = atlasuv[3];
+
+    // pass texture start in UV coordinates
     for (var j = 0; j < mesh.geometry.faceVertexUvs[0][i].length; j++) {
-      mesh.geometry.faceVertexUvs[0][i][j].set(atlasuv[j][0], 1 - atlasuv[j][1]);
+      //mesh.geometry.faceVertexUvs[0][i][j].set(atlasuv[j][0], 1 - atlasuv[j][1]);
+      mesh.geometry.faceVertexUvs[0][i][j].set(topUV[0], 1.0 - topUV[1]); // set all to top (fixed tileSizeUV)
     }
   });
 
