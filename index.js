@@ -122,6 +122,7 @@ function Texture(game, opts) {
 '   vec2 texCoord = tileOffset + tileSizeUV * tileUV;',
 '',
 '   gl_FragColor = texture2D(tileMap, texCoord);',
+'   if (gl_FragColor.a < 0.001) discard; // transparency',
 '}'
 ].join('\n')
     },
@@ -351,7 +352,7 @@ Texture.prototype.paint = function(mesh, materials) {
     if (!atlasuv) return;
 
     // If a transparent texture use transparent material
-    face.materialIndex = (self.transparents.indexOf(name) !== -1) ? 1 : 0;
+    face.materialIndex = 0; //(self.transparents.indexOf(name) !== -1) ? 1 : 0; // XXX: always use same material TODO: do we need separate opaque/transparent?
 
     // 0 -- 1
     // |    |
