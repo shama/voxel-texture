@@ -63,8 +63,7 @@ function Texture(game, opts) {
 
       uniforms: {
         tileMap: {type: 't', value: this.texture},
-        tileSize: {type: 'f', value: 16.0},  // size of one individual texture tile
-        tileSizeUV: {type: 'f', value: 16.0 / this.canvas.width}, // size of tile in UV units (0.0-1.0)
+        tileSize: {type: 'f', value: 16.0 / this.canvas.width} // size of tile in UV units (0.0-1.0), square (=== 16.0 / this.canvas.height)
       },
       vertexShader: [
 'varying vec3 vNormal;',
@@ -80,9 +79,8 @@ function Texture(game, opts) {
 '}'
         ].join('\n'),
       fragmentShader: [
-'uniform float tileSize;',
 'uniform sampler2D tileMap;',
-'uniform float tileSizeUV;',
+'uniform float tileSize;', // Size of a tile in atlas
 'uniform vec2 tileOffsets[7];',
 '',
 'varying vec3 vNormal;',
@@ -96,7 +94,6 @@ function Texture(game, opts) {
 
 'vec4 fourTapSample(vec2 tileOffset, //Tile offset in the atlas ',
 '                  vec2 tileUV, //Tile coordinate (as above)',
-'                  float tileSize, //Size of a tile in atlas',
 '                  sampler2D atlas) {',
 '  //Initialize accumulators',
 '  vec4 color = vec4(0.0, 0.0, 0.0, 0.0);',
@@ -155,11 +152,10 @@ function Texture(game, opts) {
   ? [
     '     gl_FragColor = fourTapSample(tileOffset, //Tile offset in the atlas ',
     '                  tileUV, //Tile coordinate (as above)',
-    '                  tileSizeUV, //Size of a tile in atlas',
     '                  tileMap);'].join('\n') 
   : [
     // index tile at offset into texture atlas
-    'vec2 texCoord = tileOffset + tileSizeUV * fract(tileUV);',
+    'vec2 texCoord = tileOffset + tileSize * fract(tileUV);',
     'gl_FragColor = texture2D(tileMap, texCoord);'].join('\n')),
 '',
 '   if (gl_FragColor.a < 0.001) discard; // transparency',
@@ -420,7 +416,7 @@ Texture.prototype.paint = function(mesh, materials) {
     // pass texture start in UV coordinates
     for (var j = 0; j < mesh.geometry.faceVertexUvs[0][i].length; j++) {
       //mesh.geometry.faceVertexUvs[0][i][j].set(atlasuv[j][0], 1 - atlasuv[j][1]);
-      mesh.geometry.faceVertexUvs[0][i][j].set(topUV[0], 1.0 - topUV[1]); // set all to top (fixed tileSizeUV)
+      mesh.geometry.faceVertexUvs[0][i][j].set(topUV[0], 1.0 - topUV[1]); // set all to top (fixed tileSize)
     }
   });
 
