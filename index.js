@@ -651,7 +651,7 @@ function TextureSimple(game, opts) {
     map.wrapS     = self.THREE.RepeatWrapping;
   };
 
-  this.THREE              = this.game.THREE || opts.THREE || require('three');
+  this.THREE              = this.game.THREE || opts.THREE;
   this.materials          = [];
   this.names              = [];
   this.texturePath        = opts.texturePath    || '/textures/';
