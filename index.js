@@ -54,34 +54,112 @@ function Texture(game, opts) {
   this._atlaskey = false;
   this.texture = new this.THREE.Texture(this.canvas);
 
+  var THREE = this.game.THREE;
+
   this.options = {
     crossOrigin: 'Anonymous',
     materialParams: {
       ambient: 0xbbbbbb,
       transparent: false,
-      side: this.THREE.DoubleSide,
+      side: THREE.DoubleSide,
 
-      uniforms: {
-        tileMap: {type: 't', value: this.texture},
-        tileSize: {type: 'f', value: 16.0 / this.canvas.width} // size of tile in UV units (0.0-1.0), square (=== 16.0 / this.canvas.height)
-      },
-      vertexShader: [
-'varying vec3 vNormal;',
-'varying vec3 vPosition;',
-'varying vec2 vUv;', // to set from three.js's "uv" attribute passed in
-'',
-'void main() {',
+
+    // based on three.js/src/renderers/WebGLShaders.js lambert
+		uniforms: THREE.UniformsUtils.merge( [
+
+        THREE.UniformsLib[ "common" ],
+        THREE.UniformsLib[ "fog" ],
+        THREE.UniformsLib[ "lights" ],
+        THREE.UniformsLib[ "shadowmap" ],
+
+        {
+          "ambient"  : { type: "c", value: new THREE.Color( 0xffffff ) },
+          "emissive" : { type: "c", value: new THREE.Color( 0x000000 ) },
+          "wrapRGB"  : { type: "v3", value: new THREE.Vector3( 1, 1, 1 ) },
+
+          // ours
+          tileMap: {type: 't', value: null}, // textures not preserved by UniformsUtils.merge(); set below instead
+          tileSize: {type: 'f', value: 16.0 / this.canvas.width} // size of tile in UV units (0.0-1.0), square (=== 16.0 / this.canvas.height)
+        }
+		] ),
+
+		vertexShader: [
+
+			"#define LAMBERT",
+
+			"varying vec3 vLightFront;",
+
+			"#ifdef DOUBLE_SIDED",
+
+				"varying vec3 vLightBack;",
+
+			"#endif",
+
+			THREE.ShaderChunk[ "map_pars_vertex" ],
+			THREE.ShaderChunk[ "lightmap_pars_vertex" ],
+			THREE.ShaderChunk[ "envmap_pars_vertex" ],
+			THREE.ShaderChunk[ "lights_lambert_pars_vertex" ],
+			THREE.ShaderChunk[ "color_pars_vertex" ],
+			THREE.ShaderChunk[ "morphtarget_pars_vertex" ],
+			THREE.ShaderChunk[ "skinning_pars_vertex" ],
+			THREE.ShaderChunk[ "shadowmap_pars_vertex" ],
+
+      // added to pass to fragment shader for tile UV coordinate calculation
+      'varying vec3 vNormal;',
+      'varying vec3 vPosition;',
+      'varying vec2 vUv;',
+			"void main() {",
+
+				THREE.ShaderChunk[ "map_vertex" ],
+				THREE.ShaderChunk[ "lightmap_vertex" ],
+				THREE.ShaderChunk[ "color_vertex" ],
+
+				THREE.ShaderChunk[ "morphnormal_vertex" ],
+				THREE.ShaderChunk[ "skinbase_vertex" ],
+				THREE.ShaderChunk[ "skinnormal_vertex" ],
+				THREE.ShaderChunk[ "defaultnormal_vertex" ],
+
+				THREE.ShaderChunk[ "morphtarget_vertex" ],
+				THREE.ShaderChunk[ "skinning_vertex" ],
+				THREE.ShaderChunk[ "default_vertex" ],
+
+				THREE.ShaderChunk[ "worldpos_vertex" ],
+				THREE.ShaderChunk[ "envmap_vertex" ],
+				THREE.ShaderChunk[ "lights_lambert_vertex" ],
+				THREE.ShaderChunk[ "shadowmap_vertex" ],
+
+        // added
 '   vNormal = normal;',
 '   vPosition = position;',
-'   vUv = uv;',
-'',
+'   vUv = uv;',  // passed in from three.js vertexFaceUvs TODO: let shader chunks do it for us (proper #defines)
 '   gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);',
-'}'
-        ].join('\n'),
-      fragmentShader: [
+			"}"
+
+		].join("\n"),
+
+		fragmentShader: [
+
+			"uniform float opacity;",
+
+			"varying vec3 vLightFront;",
+
+			"#ifdef DOUBLE_SIDED",
+
+				"varying vec3 vLightBack;",
+
+			"#endif",
+
+			THREE.ShaderChunk[ "color_pars_fragment" ],
+			THREE.ShaderChunk[ "map_pars_fragment" ],
+			THREE.ShaderChunk[ "lightmap_pars_fragment" ],
+			THREE.ShaderChunk[ "envmap_pars_fragment" ],
+			THREE.ShaderChunk[ "fog_pars_fragment" ],
+			THREE.ShaderChunk[ "shadowmap_pars_fragment" ],
+			THREE.ShaderChunk[ "specularmap_pars_fragment" ],
+
+      // added
 'uniform sampler2D tileMap;',
 'uniform float tileSize;', // Size of a tile in atlas
-'uniform vec2 tileOffsets[7];',
 '',
 'varying vec3 vNormal;',
 'varying vec3 vPosition;',
@@ -119,7 +197,14 @@ function Texture(game, opts) {
 '  return color / totalWeight;',
 '}',
 '',
-'void main() {',
+
+			"void main() {",
+
+				//"gl_FragColor = vec4( vec3 ( 1.0 ), opacity );",
+
+				//THREE.ShaderChunk[ "map_fragment" ],
+      
+        // added
 // use world coordinates to repeat [0..1] offsets, within _each_ tile face
 '   vec2 tileUV = vec2(dot(vNormal.zxy, vPosition),',
 '                      dot(vNormal.yzx, vPosition));',
@@ -159,9 +244,37 @@ function Texture(game, opts) {
     'gl_FragColor = texture2D(tileMap, texCoord);'].join('\n')),
 '',
 '   if (gl_FragColor.a < 0.001) discard; // transparency',
-'}'
-].join('\n')
-    },
+
+
+				THREE.ShaderChunk[ "alphatest_fragment" ],
+				THREE.ShaderChunk[ "specularmap_fragment" ],
+
+				"#ifdef DOUBLE_SIDED",
+
+					"if ( gl_FrontFacing )",
+						"gl_FragColor.xyz *= vLightFront;",
+					"else",
+						"gl_FragColor.xyz *= vLightBack;",
+
+				"#else",
+
+					"gl_FragColor.xyz *= vLightFront;",
+
+				"#endif",
+
+				THREE.ShaderChunk[ "lightmap_fragment" ],
+				THREE.ShaderChunk[ "color_fragment" ],
+				THREE.ShaderChunk[ "envmap_fragment" ],
+				THREE.ShaderChunk[ "shadowmap_fragment" ],
+
+				THREE.ShaderChunk[ "linear_to_gamma_fragment" ],
+
+				THREE.ShaderChunk[ "fog_fragment" ],
+
+      "}"
+		].join("\n")
+	},
+
     materialTransparentParams: {
       ambient: 0xbbbbbb,
       transparent: true,
@@ -177,6 +290,8 @@ function Texture(game, opts) {
     }
   };
 
+  this.options.materialParams.lights = []; // force lights refresh to setup uniforms, three.js WebGLRenderer line 4323
+  this.options.materialParams.uniforms.tileMap.value = this.texture;
   this.options.applyTextureParams(this.texture);
 
   if (useFlatColors) {
