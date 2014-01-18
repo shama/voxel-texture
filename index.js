@@ -645,7 +645,8 @@ function TextureSimple(game, opts) {
   this.THREE              = this.game.THREE || opts.THREE;
   this.materials          = [];
   this.names              = [];
-  this.texturePath        = opts.texturePath    || '/textures/';
+  this.artPacks = opts.artPacks;
+  if (!this.artPacks) throw new Error('voxel-texture requires artPacks option');
   this.materialIndex      = [];
   this._animations        = [];
 
@@ -672,7 +673,7 @@ TextureSimple.prototype.load = function(names, opts) {
         var map = n;
         n = n.name;
       } else if (typeof n === 'string') {
-        var map = self.THREE.ImageUtils.loadTexture(self.texturePath + ext(n));
+        var map = self.THREE.ImageUtils.loadTexture(self.artPacks.getTexture(n));
       } else {
         var map = new self.THREE.Texture(n);
         n = map.name;
@@ -760,10 +761,7 @@ TextureSimple.prototype.sprite = function(name, w, h, cb) {
   if (typeof w === 'function') { cb = w; w = null; }
   if (typeof h === 'function') { cb = h; h = null; }
   w = w || 16; h = h || w;
-  var img = new Image();
-  img.src = self.texturePath + ext(name);
-  img.onerror = cb;
-  img.onload = function() {
+  self.artPacks.getTextureImage(name, function(img) {
     var textures = [];
     for (var x = 0; x < img.width; x += w) {
       for (var y = 0; y < img.height; y += h) {
@@ -778,7 +776,9 @@ TextureSimple.prototype.sprite = function(name, w, h, cb) {
       }
     }
     cb(null, textures);
-  };
+  }, function(err, img) {
+    console.log('TextureSimple sprite '+name+' error '+err+' on '+img);
+  });
   return self;
 };
 
