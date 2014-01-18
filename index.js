@@ -30,7 +30,8 @@ function Texture(game, opts) {
   this.names = [];
   this.materials = [];
   this.transparents = [];
-  this.texturePath = opts.texturePath || '/textures/';
+  this.artPacks = opts.artPacks;
+  if (!this.artPacks) throw new Error('voxel-texture requires artPacks option');
   this.loading = 0;
   this.ao = require('voxel-fakeao')(this.game);
 
@@ -362,11 +363,7 @@ Texture.prototype.pack = function(name, done) {
     done();
   }
   if (typeof name === 'string') {
-    var img = new Image();
-    img.id = name;
-    img.crossOrigin = self.options.crossOrigin;
-    img.src = self.texturePath + ext(name);
-    img.onload = function() {
+    self.artPacks.getTextureImage(name, function(img) {
       if (isTransparent(img)) {
         self.transparents.push(name);
       }
@@ -381,11 +378,10 @@ Texture.prototype.pack = function(name, done) {
       } else {
         pack(img);
       }
-    };
-    img.onerror = function() {
+    }, function(err, img) {
       console.error('Couldn\'t load URL [' + img.src + ']');
       done();
-    };
+    });
   } else {
     pack(name);
   }
@@ -544,10 +540,7 @@ Texture.prototype.sprite = function(name, w, h, cb) {
   if (typeof h === 'function') { cb = h; h = null; }
   w = w || 16; h = h || w;
   self.loading++;
-  var img = new Image();
-  img.src = self.texturePath + ext(name);
-  img.onerror = cb;
-  img.onload = function() {
+  self.artPacks.getTextureImage(name, function(img) {
     var canvases = [];
     for (var x = 0; x < img.width; x += w) {
       for (var y = 0; y < img.height; y += h) {
@@ -577,7 +570,9 @@ Texture.prototype.sprite = function(name, w, h, cb) {
       self.materials = self.materials.concat(textures);
       cb(textures);
     });
-  };
+  }, function(err, img) {
+    cb();
+  });
   return self;
 };
 
@@ -615,10 +610,6 @@ function uvrot(coords, deg) {
 function uvinvert(coords) {
   var c = coords.slice(0);
   return [c[3], c[2], c[1], c[0]];
-}
-
-function ext(name) {
-  return (String(name).indexOf('.') !== -1) ? name : name + '.png';
 }
 
 function each(arr, it, done) {
