@@ -283,17 +283,13 @@ function Texture(game, opts) {
       //depthWrite: false,
       //depthTest: false
       // TODO
-    },
-    materialType: this.THREE.ShaderMaterial,
-    applyTextureParams: function(map) {
-      map.magFilter = self.THREE.NearestFilter;
-      map.minFilter = self.THREE.LinearMipMapLinearFilter;
     }
   };
 
   this.options.materialParams.lights = []; // force lights refresh to setup uniforms, three.js WebGLRenderer line 4323
   this.options.materialParams.uniforms.tileMap.value = this.texture;
-  this.options.applyTextureParams(this.texture);
+  this.texture.magFilter = this.THREE.NearestFilter;
+  this.texture.minFilter = this.THREE.LinearMipMapLinearFilter;
 
   if (useFlatColors) {
     // If were using simple colors
@@ -301,8 +297,8 @@ function Texture(game, opts) {
       vertexColors: this.THREE.VertexColors
     });
   } else {
-    var opaque = new this.options.materialType(this.options.materialParams);
-    var transparent = new this.options.materialType(this.options.materialTransparentParams);
+    var opaque = new this.THREE.ShaderMaterial(this.options.materialParams);
+    var transparent = new this.THREE.ShaderMaterial(this.options.materialTransparentParams);
     this.material = new this.THREE.MeshFaceMaterial([
       opaque,
       transparent
