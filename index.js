@@ -367,16 +367,13 @@ Texture.prototype.pack = function(name, done) {
       if (isTransparent(img)) {
         self.transparents.push(name);
       }
-      if (self.useFourTap) {
-        // repeat 2x2 for mipmap padding 4-tap trick
-        var img2 = new Image();
-        img2.id = name;
-        img2.src = touchup.repeat(img, 2, 2);
-        img2.onload = function() {
-          pack(img2);
-        }
-      } else {
-        pack(img);
+      // repeat 2x2 for mipmap padding 4-tap trick
+      // TODO: replace with atlaspack padding, but changed to 2x2: https://github.com/deathcap/atlaspack/tree/tilepadamount
+      var img2 = new Image();
+      img2.id = name;
+      img2.src = touchup.repeat(img, 2, 2);
+      img2.onload = function() {
+        pack(img2);
       }
     }, function(err, img) {
       console.error('Couldn\'t load URL [' + img.src + ']');
