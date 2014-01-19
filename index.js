@@ -50,7 +50,7 @@ function Texture(game, opts) {
 
   // create core atlas and texture
   this.atlas = createAtlas(this.canvas);
-  this.atlas.tilepad = !this.useFourTap; // for 4-tap, not using tilepad since it repeats only half on each side (.5 .5 .5 / .5 1 .5 / .5 .5 .5, not 1 1 / 1 1)
+  this.atlas.tilepad = true;
   this._atlasuv = false;
   this._atlaskey = false;
   this.texture = new this.THREE.Texture(this.canvas);
