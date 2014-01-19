@@ -211,8 +211,8 @@ function Texture(game, opts) {
 '                      dot(vNormal.yzx, vPosition));',
 
 '',
-'    // back: flip 180',
-'    if (vNormal.z < 0.0) tileUV.t = 1.0 - tileUV.t;',
+'    // back and bottom: flip 180',
+'    if (vNormal.z < 0.0 || vNormal.y < 0.0) tileUV.t = 1.0 - tileUV.t;',
 '',
 '    // left: rotate 90 ccw',
 '    if (vNormal.x < 0.0) {',
@@ -221,12 +221,16 @@ function Texture(game, opts) {
 '        tileUV.t = 1.0 - r;',
 '    }',
 '',
-'    // right: rotate 90 cw',
-'    if (vNormal.x > 0.0) {',
+'    // right and top: rotate 90 cw',
+'    if (vNormal.x > 0.0 || vNormal.y > 0.0) {',
 '        float r = tileUV.s;',
 '        tileUV.s = tileUV.t;',
 '        tileUV.t = r;',
-'    }', // TODO: might technically need to mirror-image other sides? (can't really tell)
+'    }', 
+'',
+'    // front and back and bottom: flip 180',
+'   if (vNormal.z > 0.0 || vNormal.z < 0.0 || vNormal.y < 0.0) tileUV.s = 1.0 - tileUV.s;',
+'',
 '',
 
 // three.js' UV coordinate is passed as tileOffset, starting point determining the texture
