@@ -162,6 +162,7 @@ npm install voxel-texture
 ```
 
 ## release history
+* 0.5.8 - Add missing opaque module dependency. Thanks @deathcap!
 * 0.5.7 - Separately load transparent textures. Fill atlas bg in black. Replace AO with voxel-fakeao. Dynamically set amount of sides with texturing, thanks @morganrallen!
 * 0.5.6 - Add materialFlatColor option for using simple flat colors instead of textures.
 * 0.5.5 - Only call document.createElement if available.
