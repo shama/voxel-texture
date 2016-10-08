@@ -32,6 +32,7 @@
     "opaque": "0.0.1",
     "tic": "~0.2.1",
     "atlaspack": "~0.2.5",
+    "touchup": "~0.0.1",
     "voxel-fakeao": "~0.1.1"
   },
   "devDependencies": {

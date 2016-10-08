@@ -7,6 +7,7 @@ View [the demo](http://shama.github.com/voxel-texture).
 
 **ATTENTION! v0.5.0 has changed dramatically. This library is no longer is
 materials API but just loads textures onto an atlas and sets UV mappings.**
+The old API without atlases can be enabled by setting the 'useAtlas' option to false.
 
 ## example
 
