@@ -3,7 +3,7 @@
 > Add textures to an atlas and set UV mapping on geometries. Used for texturing
 > in [voxel.js](http://voxeljs.com).
 
-View [the demo](http://shama.github.com/voxel-texture).
+View [the demo](https://shama.github.io/voxel-texture).
 
 **ATTENTION! v0.5.0 has changed dramatically. This library is no longer is
 materials API but just loads textures onto an atlas and sets UV mappings.**
@@ -162,6 +162,7 @@ npm install voxel-texture
 ```
 
 ## release history
+* 0.5.9 - Don't call `delete` on an identifier. [#24](https://github.com/shama/voxel-texture/issues/24)
 * 0.5.8 - Add missing opaque module dependency. Thanks @deathcap!
 * 0.5.7 - Separately load transparent textures. Fill atlas bg in black. Replace AO with voxel-fakeao. Dynamically set amount of sides with texturing, thanks @morganrallen!
 * 0.5.6 - Add materialFlatColor option for using simple flat colors instead of textures.
@@ -183,5 +184,5 @@ npm install voxel-texture
 * 0.1.0 - initial release
 
 ## license
-Copyright (c) 2013 Kyle Robinson Young  
+Copyright (c) 2025 Kyle Robinson Young  
 Licensed under the MIT license.

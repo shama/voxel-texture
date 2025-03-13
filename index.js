@@ -306,7 +306,7 @@ Texture.prototype.sprite = function(name, w, h, cb) {
       ]);
     }, function() {
       self._afterLoading();
-      delete canvases;
+      canvases = null;
       self.materials = self.materials.concat(textures);
       cb(textures);
     });

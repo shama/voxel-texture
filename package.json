@@ -1,7 +1,7 @@
 {
   "name": "voxel-texture",
   "description": "A texture helper for voxeljs",
-  "version": "0.5.8",
+  "version": "0.5.9",
   "homepage": "https://github.com/shama/voxel-texture",
   "author": {
     "name": "Kyle Robinson Young",
@@ -15,12 +15,7 @@
   "bugs": {
     "url": "https://github.com/shama/voxel-texture/issues"
   },
-  "licenses": [
-    {
-      "type": "MIT",
-      "url": "https://github.com/shama/voxel-texture/blob/master/LICENSE-MIT"
-    }
-  ],
+  "license": "MIT",
   "engines": {
     "node": ">= 0.8.0"
   },
